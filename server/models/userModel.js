@@ -27,7 +27,7 @@ const getUserByEmployeeID = async (employeeID) => {
 const getAllUsers = async () => {
   const request = pool.request();
   const result = await request
-    .query("SELECT id, name, email, employeeID, department, branch, role, createdAt FROM Users ORDER BY createdAt DESC");
+    .query("SELECT id, name, email, employeeID, department, branch, role FROM users ORDER BY id DESC ");
   return result.recordset;
 };
 
