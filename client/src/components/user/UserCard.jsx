@@ -32,13 +32,7 @@ const UserCard = ({ user, onEdit, onDelete, onView }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
-  };
+
 
   return (
     <Card 
@@ -104,10 +98,7 @@ const UserCard = ({ user, onEdit, onDelete, onView }) => {
             </Typography>
           </Box>
 
-          {/* Created date */}
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-            Created: {formatDate(user.createdAt)}
-          </Typography>
+         
         </Box>
       </CardContent>
 
