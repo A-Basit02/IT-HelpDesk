@@ -14,6 +14,7 @@ import AdminRoute from "./routes/AdminRoute";
 import UserRoute from "./routes/UserRoute";
 import TicketDetails from "./pages/user/TicketDetails";
 import AdminTicketDetails from "./pages/admin/TicketDetails";
+import UserManagement from "./pages/admin/UserManagement";
 import { useDispatch, useSelector } from "react-redux";
 import { getLoggedInUser } from "./redux/authSlice";
 import { Navigate } from "react-router-dom";
@@ -55,6 +56,7 @@ function App() {
           <Route
             element={<DashboardLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/tickets/:ticketNumber" element={<AdminTicketDetails />} />
           </Route>

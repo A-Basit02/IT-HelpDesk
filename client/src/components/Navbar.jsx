@@ -11,7 +11,7 @@ import Menu from "@mui/material/Menu";
 import MenuItem from "@mui/material/MenuItem";
 import Button from "@mui/material/Button";
 import MenuIcon from "@mui/icons-material/Menu";
-import { LogOut, LogIn, UserPlus, LayoutDashboard, Ticket, PlusCircle } from "lucide-react";
+import { LogOut, LogIn, UserPlus, LayoutDashboard, Ticket, PlusCircle, Users } from "lucide-react";
 
 const Navbar = () => {
   const { user } = useSelector((state) => state.auth);
@@ -111,6 +111,10 @@ const Navbar = () => {
                   <LayoutDashboard size={18} style={{ marginRight: 8 }} />
                   Dashboard
                 </MenuItem>
+                <MenuItem onClick={handleCloseNavMenu} component={Link} to="/admin/users">
+                  <Users size={18} style={{ marginRight: 8 }} />
+                  User Management
+                </MenuItem>
               </>
             )}
             {user && (
@@ -178,22 +182,14 @@ const Navbar = () => {
               >
                 Dashboard
               </Button>
-              {/* <Button
-                component={Link}
-                to="/admin/tickets"
-                startIcon={<Ticket size={18} />}
-                sx={{ color: "white", textTransform: "none", marginRight: 2 }}
-              >
-                View Tickets
-              </Button>
               <Button
                 component={Link}
-                to="/admin/edit/:ticketNumber"
-                startIcon={<Ticket size={18} />}
-                sx={{ color: "white", textTransform: "none" }}
+                to="/admin/users"
+                startIcon={<Users size={18} />}
+                sx={{ color: "white", textTransform: "none", marginRight: 2 }}
               >
-                Edit Tickets
-              </Button> */}
+                User Management
+              </Button>
             </>
           )}
           {user && (

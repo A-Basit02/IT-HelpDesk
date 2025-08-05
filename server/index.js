@@ -4,6 +4,7 @@ const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/authRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
+const userRoutes = require('./routes/userRoutes');
 require('dotenv').config();
 require('./config/db'); // Connects DB
 const decryptPayload = require('./middleware/decryptPayload');
@@ -31,6 +32,7 @@ app.use(cookieParser());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/users', userRoutes);
 
 initializeTicketScheduler();
 const PORT = process.env.PORT || 5000;

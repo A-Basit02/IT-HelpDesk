@@ -25,6 +25,7 @@ import Snackbar from '@mui/material/Snackbar';
 import Alert from '@mui/material/Alert';
 import logo from '../assets/logo.png';
 import ConfirmationDialog from './ConfirmationDialog';
+import { Users } from "lucide-react";
 
 const drawerWidth = 220;
 
@@ -41,6 +42,7 @@ const navLinks = {
   admin: [
     { to: "/admin/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
     { to: "/admin/profile", label: "Profile", icon: <AccountCircleIcon /> },
+    { to: "/admin/users", label: "User Management", icon: <PersonAddIcon /> },
   ],
 };
 
