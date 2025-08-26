@@ -20,6 +20,7 @@ import { getLoggedInUser } from "./redux/authSlice";
 import { Navigate } from "react-router-dom";
 import DashboardLayout from "./components/DashboardLayout";
 import Loader from "./components/user/loader";
+import Analytics from "./pages/admin/Analytics";
 
 function App() {
   const dispatch = useDispatch();
@@ -77,6 +78,7 @@ function App() {
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/tickets/:ticketNumber" element={<AdminTicketDetails />} />
+            <Route path="/admin/analytics" element={<Analytics />} />
           </Route>
         </Route>
       </Routes>

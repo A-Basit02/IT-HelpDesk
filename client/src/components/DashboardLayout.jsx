@@ -26,6 +26,7 @@ import Alert from '@mui/material/Alert';
 import logo from '../assets/logo.png';
 import ConfirmationDialog from './ConfirmationDialog';
 import { Users } from "lucide-react";
+import  AnalyticsIcon  from "@mui/icons-material/Analytics";
 
 const drawerWidth = 220;
 
@@ -43,6 +44,7 @@ const navLinks = {
     { to: "/admin/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
     { to: "/admin/profile", label: "Profile", icon: <AccountCircleIcon /> },
     { to: "/admin/users", label: "User Management", icon: <PersonAddIcon /> },
+    { to: "/admin/analytics", label: "Analytics", icon: <AnalyticsIcon />}
   ],
 };
 
