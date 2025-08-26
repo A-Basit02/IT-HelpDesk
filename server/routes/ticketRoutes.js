@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   createTicket,
   getAllTickets,
+  getAllTicketsForAnalytics,
   getTicketById,
   updateTicket,
   deleteTicket,
@@ -15,6 +16,7 @@ const verifyToken = require('../middleware/verifyToken');
 // Routes
 router.post('/create', verifyToken, createTicket);
 router.get('/all', verifyToken, getAllTickets);
+router.get("/analytics/all-tickets", getAllTicketsForAnalytics);
 router.get('/view/:ticketNumber', verifyToken, getTicketById);
 router.put('/edit/:ticketNumber', verifyToken, updateTicket);
 router.get('/my-tickets', verifyToken, getTicketsByEmployeeId);

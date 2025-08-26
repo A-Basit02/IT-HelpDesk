@@ -151,6 +151,29 @@ const getAllTickets = async (req, res) => {
   }
 };
 
+// controllers/ticketController.js
+
+const getAllTicketsForAnalytics = async (req, res) => {
+  try {
+    await poolConnect;
+
+    // Query to get all tickets (no pagination, for analytics only)
+    const result = await pool.request().query(`
+      SELECT id, employeeID, name, ticketNumber, status, problem_dateOccurred, problemStatement, createdAt, updatedAt
+      FROM Tickets
+      ORDER BY createdAt DESC
+    `);
+
+    res.sendEncrypted({
+      tickets: result.recordset,
+      totalTickets: result.recordset.length
+    });
+  } catch (err) {
+    console.error("Get All Tickets For Analytics Error:", err);
+    res.sendEncrypted({ message: "Server error", error: err.message });
+  }
+};
+
 const updateTicket = async (req, res) => {
   try {
     const { ticketNumber } = req.params;
@@ -351,6 +374,7 @@ module.exports = {
   createTicket,
   getTicketById,
   getAllTickets,
+  getAllTicketsForAnalytics,
   updateTicket,
   deleteTicket,
   getTicketsByEmployeeId,
