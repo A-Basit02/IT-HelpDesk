@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect , useState} from "react";
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/auth/Login";
@@ -19,18 +19,36 @@ import { useDispatch, useSelector } from "react-redux";
 import { getLoggedInUser } from "./redux/authSlice";
 import { Navigate } from "react-router-dom";
 import DashboardLayout from "./components/DashboardLayout";
+import Loader from "./components/user/loader";
 
 function App() {
   const dispatch = useDispatch();
-  const loading = useSelector((state) => state.auth.loading);
+  // const loading = useSelector((state) => state.auth.loading);
+  const [ loading, setLoading] = useState(false);
+  // const location = setlocation();
 
   useEffect(() => {
     dispatch(getLoggedInUser());
   }, []);
 
+  useEffect(() => {
+    setLoading(true);
+
+    // Minimum 1 second loader
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [location]);
+
   if (loading) {
-    return <div>Loading...</div>;
+    return <Loader />;
   }
+
+  // if (loading) {
+  //   return <div>Loading...</div>;
+  // }
 
   return (
     <Router>

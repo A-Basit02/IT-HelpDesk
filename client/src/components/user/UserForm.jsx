@@ -120,6 +120,12 @@ const UserForm = ({
         newErrors.password = 'Password is required';
       } else if (formData.password.length < 6) {
         newErrors.password = 'Password must be at least 6 characters';
+      } else if (!/[A-Za-z]/.test(formData.password)){
+        newErrors.password = 'Password must contain an alphabet';
+      } else if (!/[0-9]/.test(formData.password)){
+        newErrors.password = 'Password must contains atleast one nmeric value';
+      } else if (!/[!@#$%^&*_.]/.test(formData.password)){
+        newErrors.password = 'Password must contains at least one special character';
       }
     }
 

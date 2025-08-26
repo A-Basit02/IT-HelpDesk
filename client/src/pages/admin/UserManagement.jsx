@@ -199,21 +199,27 @@ const UserManagement = () => {
         </Typography>
         
         {/* Statistics */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
+        <Box sx={{ display: 'flex', gap: 2, mb: 3}}>
           <Chip 
             label={`Total Users: ${stats.totalUsers}`} 
             color="primary" 
             variant="outlined"
+            size='large'
+            sx={{ fontSize: '1.2rem' }} 
           />
           <Chip 
             label={`Admins: ${stats.adminUsers}`} 
             color="error" 
             variant="outlined"
+            size='large'
+            sx={{ fontSize: '1.2rem' }} 
           />
           <Chip 
             label={`Regular Users: ${stats.regularUsers}`} 
             color="info" 
             variant="outlined"
+            size='large'
+            sx={{ fontSize: '1.2rem' }} 
           />
         </Box>
       </Box>
