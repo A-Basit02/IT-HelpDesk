@@ -23,6 +23,7 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import { useCallback } from "react";
+import TicketPieChart from "../../components/TicketPieChart";
 
 const AdminDashboard = () => {
   const [tickets, setTickets] = useState([]);
@@ -149,6 +150,8 @@ const AdminDashboard = () => {
       >
         Admin Dashboard
       </Typography>
+
+      <TicketPieChart />
 
       {/* Search Bar and Actions */}
       <Box
