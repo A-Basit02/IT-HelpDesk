@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
-import { PieChart, Pie, Cell, Tooltip } from "recharts";
-import { Box, Typography, CircularProgress, Chip } from "@mui/material";
+import { PieChart } from "@mui/x-charts/PieChart";
+import { Box, Typography, CircularProgress } from "@mui/material";
 import axiosInstance from "../utils/axiosInstance";
 
-export default function TicketPieChart() {
+export default function TicketPieChart({ onSliceClick }) {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        const response = await axiosInstance.get("/tickets/analytics/all-tickets");
+        const response = await axiosInstance.get(
+          "/tickets/analytics/all-tickets"
+        );
         setTickets(response.data.tickets);
       } catch (error) {
         console.error("Error fetching tickets:", error);
@@ -30,74 +32,49 @@ export default function TicketPieChart() {
   }
 
   // Count tickets by status
-  const openCount = tickets.filter((t) => t.status?.toLowerCase() === "open").length;
-  const inProgressCount = tickets.filter((t) => t.status?.toLowerCase() === "in progress").length;
-  const closedCount = tickets.filter((t) => t.status?.toLowerCase() === "closed").length;
+  const openCount = tickets.filter(
+    (t) => t.status?.toLowerCase() === "open"
+  ).length;
+  const inProgressCount = tickets.filter(
+    (t) => t.status?.toLowerCase() === "in progress"
+  ).length;
+  const closedCount = tickets.filter(
+    (t) => t.status?.toLowerCase() === "closed"
+  ).length;
 
   const data = [
-    { name: "Open", value: openCount },
-    { name: "In Progress", value: inProgressCount },
-    { name: "Closed", value: closedCount },
+    { id: 0, value: openCount, label: "open", color: "#AB00FA" },
+    { id: 1, value: inProgressCount, label: "in progress",  color: "#ED6C02" },
+    { id: 2, value: closedCount, label: "closed", color: "#2E7D32"},
   ];
-
-  const COLORS = ["#1976d2", "#f57c00", "#2e7d32"];
 
   return (
     <Box className="flex flex-col items-center justify-center" sx={{ mb: 4 }}>
-      <Typography variant="h5" gutterBottom>
-        Ticket Status Analytics
-      </Typography>
-
-      {/* Chart container with hover effect */}
-      <Box
-        className="flex flex-col items-center"
+    
+      <PieChart
+        series={[
+          {
+            data,
+            highlightScope: { fade: "global", highlight: "item" },
+            
+          },
+        ]}
+        height={300}
         sx={{
           transition: "transform 0.2s ease-in-out",
           "&:hover": {
             transform: "scale(1.02)",
             boxShadow: 4,
           },
-          borderRadius: "12px",
-          p: 2,
         }}
-      >
-        {/* Pie Chart */}
-        <PieChart width={600} height={400}>
-          <Pie
-            data={data}
-            cx="50%"
-            cy="50%"
-            label={({ name, value }) => `${name}: ${value}`}
-            labelLine={false}
-            outerRadius={150}
-            dataKey="value"
-          >
-            {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-            ))}
-          </Pie>
-          <Tooltip />
-        </PieChart>
-
-        {/* Custom legend with Chips */}
-        <Box className="flex justify-center flex-wrap gap-3 mt-4">
-          {data.map((entry, index) => (
-            <Chip
-              key={`chip-${index}`}
-              label={entry.name}
-              sx={{
-                backgroundColor: COLORS[index % COLORS.length],
-                color: "white",
-                fontSize: "1.5rem",
-                px: 2,
-                py: 1,
-                m: 2,
-                borderRadius: "8px",
-              }}
-            />
-          ))}
-        </Box>
-      </Box>
+        
+        onItemClick={(_, item) => {
+          const clickedData = data[item.dataIndex]; // 👈 data array se label/value nikal lo
+          if (onSliceClick && clickedData?.label) {
+            onSliceClick(clickedData.label);
+          }
+        }}
+      />
     </Box>
   );
 }

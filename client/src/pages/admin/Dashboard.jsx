@@ -30,6 +30,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   // Pagination states
   const [page, setPage] = useState(1);
@@ -48,7 +49,8 @@ const AdminDashboard = () => {
     async (
       currentPage = page,
       currentLimit = limit,
-      currentSearch = searchTerm
+      currentSearch = searchTerm,
+      currentStatus = statusFilter
     ) => {
       setLoading(true);
       try {
@@ -59,6 +61,10 @@ const AdminDashboard = () => {
 
         if (currentSearch.trim()) {
           params.append("search", currentSearch);
+        }
+
+        if (currentStatus) {
+          params.append("status", currentStatus); // 👈 filter by status
         }
 
         const response = await axiosInstance.get(
@@ -73,7 +79,7 @@ const AdminDashboard = () => {
         setLoading(false);
       }
     },
-    [page, limit, searchTerm]
+    [page, limit, searchTerm, statusFilter]
   );
 
   useEffect(() => {
@@ -151,7 +157,14 @@ const AdminDashboard = () => {
         Admin Dashboard
       </Typography>
 
-      <TicketPieChart />
+      {/* Pie Chart  */}
+      <TicketPieChart
+        onSliceClick={(status) => {
+          setStatusFilter(status);
+          setPage(1);
+          fetchTickets(1, limit, searchTerm, status);
+        }}
+      />
 
       {/* Search Bar and Actions */}
       <Box
@@ -189,8 +202,21 @@ const AdminDashboard = () => {
         >
           Check Stale Tickets
         </Button>
+        <Button
+          variant="outlined"
+          color="secondary"
+          onClick={() => {
+            setSearchTerm("");
+            setStatusFilter("");
+            setPage(1);
+            fetchTickets(1, limit, "", "");
+          }}
+          sx={{ minWidth: 200 }}
+          
+        >
+          Reset Filters
+        </Button>
       </Box>
-
       {loading ? (
         <Box
           display="flex"
