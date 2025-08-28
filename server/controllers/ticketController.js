@@ -89,38 +89,110 @@ const createTicket = async (req, res) => {
     res.sendEncrypted({ message: "Server error", error: err.message });
   }
 };
+// const getAllTickets = async (req, res) => {
+//   try {
+//     await poolConnect;
+    
+//     // Get pagination and search parameters from query
+//     const page = parseInt(req.query.page) || 1;
+//     const limit = parseInt(req.query.limit) || 10;
+//     const search = req.query.search || '';
+//     const offset = (page - 1) * limit;
+    
+//     // Build WHERE clause for search
+//     let whereClause = '';
+//     let searchParams = [];
+    
+//     if (search.trim()) {
+//       whereClause = `
+//         WHERE ticketNumber LIKE '%${search}%' 
+//         OR name LIKE '%${search}%' 
+//         OR employeeID LIKE '%${search}%' 
+//         OR status LIKE '%${search}%' 
+//         OR problemStatement LIKE '%${search}%'
+//       `;
+//     }
+    
+//     // Get total count for pagination with search
+//     const countQuery = `SELECT COUNT(*) as total FROM Tickets ${whereClause}`;
+//     const countResult = await pool.request().query(countQuery);
+    
+//     const totalTickets = countResult.recordset[0].total;
+//     const totalPages = Math.ceil(totalTickets / limit);
+    
+//     // Get paginated tickets with search
+//     const result = await pool
+//       .request()
+//       .input("offset", sql.Int, offset)
+//       .input("limit", sql.Int, limit)
+//       .query(`
+//         SELECT id, employeeID, name, ticketNumber, status, problem_dateOccurred, problemStatement, createdAt, updatedAt
+//         FROM Tickets
+//         ${whereClause}
+//         ORDER BY createdAt DESC
+//         OFFSET @offset ROWS
+//         FETCH NEXT @limit ROWS ONLY
+//       `);
+
+//     res.sendEncrypted({ 
+//       tickets: result.recordset,
+//       pagination: {
+//         currentPage: page,
+//         totalPages: totalPages,
+//         totalTickets: totalTickets,
+//         hasNextPage: page < totalPages,
+//         hasPrevPage: page > 1,
+//         limit: limit
+//       }
+//     });
+//   } catch (err) {
+//     console.error("Get Tickets Error:", err);
+//     res.sendEncrypted({ message: "Server error", error: err.message });
+//   }
+// };
+
+// controllers/ticketController.js
+
 const getAllTickets = async (req, res) => {
   try {
     await poolConnect;
     
-    // Get pagination and search parameters from query
+    // Get pagination, search, and status from query
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const search = req.query.search || '';
+    const status = req.query.status || '';  // 👈 new
     const offset = (page - 1) * limit;
     
-    // Build WHERE clause for search
-    let whereClause = '';
-    let searchParams = [];
+    // Build WHERE clause dynamically
+    let whereConditions = [];
     
     if (search.trim()) {
-      whereClause = `
-        WHERE ticketNumber LIKE '%${search}%' 
+      whereConditions.push(`
+        (ticketNumber LIKE '%${search}%' 
         OR name LIKE '%${search}%' 
         OR employeeID LIKE '%${search}%' 
         OR status LIKE '%${search}%' 
-        OR problemStatement LIKE '%${search}%'
-      `;
+        OR problemStatement LIKE '%${search}%')
+      `);
     }
-    
-    // Get total count for pagination with search
+
+    if (status.trim()) {
+      whereConditions.push(`status = '${status}'`);
+    }
+
+    const whereClause = whereConditions.length > 0 
+      ? "WHERE " + whereConditions.join(" AND ") 
+      : "";
+
+    // Count query
     const countQuery = `SELECT COUNT(*) as total FROM Tickets ${whereClause}`;
     const countResult = await pool.request().query(countQuery);
     
     const totalTickets = countResult.recordset[0].total;
     const totalPages = Math.ceil(totalTickets / limit);
     
-    // Get paginated tickets with search
+    // Data query
     const result = await pool
       .request()
       .input("offset", sql.Int, offset)
@@ -150,8 +222,6 @@ const getAllTickets = async (req, res) => {
     res.sendEncrypted({ message: "Server error", error: err.message });
   }
 };
-
-// controllers/ticketController.js
 
 const getAllTicketsForAnalytics = async (req, res) => {
   try {
