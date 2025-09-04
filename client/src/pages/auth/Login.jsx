@@ -4,6 +4,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { login } from "../../redux/authSlice";
 import { Container, Box, TextField, Typography, Button } from "@mui/material";
 import { toast } from "react-toastify";
+import { Message } from "@mui/icons-material";
 
 const Login = () => {
   const dispatch = useDispatch();
@@ -15,9 +16,10 @@ const Login = () => {
 
   useEffect(() => {
     if (user && !authLoading) {
+      // toast.success("Welcome" , user.name  )
       console.log("User authenticated, navigating to:", user.role);
       toast.success(`Welcome back, ${user.name}!`);
-      if (user.role === "admin") {
+      if (user.role === "admin" || "super_admin") {
         navigate("/admin/profile", { replace: true });
       } else {
         navigate("/profile", { replace: true });
@@ -40,8 +42,10 @@ const Login = () => {
     try {
       const result = await dispatch(login({ employeeID, password })).unwrap();
       console.log("Login successful:", result);
+      toast.success(result.message);
     } catch (error) {
       console.error("Login error in handleSubmit:", error);
+      toast.error(error);
     } finally {
       setLoading(false);
       console.log("Login process finished");

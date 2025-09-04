@@ -46,6 +46,12 @@ const navLinks = {
     { to: "/admin/users", label: "User Management", icon: <PersonAddIcon /> },
     // { to: "/admin/analytics", label: "Analytics", icon: <AnalyticsIcon />}
   ],
+  super_admin: [
+    { to: "/admin/dashboard", label: "Dashboard", icon: <DashboardIcon /> },
+    { to: "/admin/profile", label: "Profile", icon: <AccountCircleIcon /> },
+    { to: "/admin/users", label: "User Management", icon: <PersonAddIcon /> },
+  ],
+
 };
 
 export default function DashboardLayout() {
@@ -71,6 +77,7 @@ export default function DashboardLayout() {
   let links = navLinks.guest;
   if (user?.role === "user") links = navLinks.user;
   if (user?.role === "admin") links = navLinks.admin;
+  if (user?.role === "super_admin") links = navLinks.super_admin;
 
   const drawer = (
     <div>

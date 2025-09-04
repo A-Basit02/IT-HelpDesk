@@ -9,7 +9,7 @@ const Unauthorized = () => {
 
   // Decide redirect path
   const redirectPath =
-    user && user.role === "admin" ? "/admin/profile" : "/";
+    user && user.role === "admin" || "super_admin" ? "/admin/profile" : "/";
 
   return (
     <Box

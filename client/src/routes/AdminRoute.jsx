@@ -23,7 +23,7 @@ const AdminRoute = () => {
   }
 
   // Check if user has admin role
-  if (user.role === "admin") {
+  if (user.role === "admin" || "super_admin") {
     return <Outlet />;
   } else {
     console.warn("AdminRoute unauthorized access, user role:", user.role);
