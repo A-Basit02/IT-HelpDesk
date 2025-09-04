@@ -7,6 +7,7 @@ const {
   deleteUser,
   getUserByEmployeeID 
 } = require("../models/userModel");
+const { sendEmail } = require("../utils/emailService"); // ✅ Correct import
 
 // Get all users (admin only)
 const getAllUsersController = async (req, res) => {
@@ -200,11 +201,96 @@ const updateCurrentUserProfile = async (req, res) => {
   }
 };
 
+// Super Admin can also approve/reject with audit email
+const updateUserStatusController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const body = req.decryptedBody || req.body || {};
+    const { name, email, employeeID, department, branch, role, password, approval_status } = body;
+
+    if (!id) {
+      return res.status(400).sendEncrypted({ message: "User ID is required" });
+    }
+
+    // Check if user exists
+    const existingUser = await getUserById(id);
+    if (!existingUser) {
+      return res.status(404).sendEncrypted({ message: "User not found" });
+    }
+
+    // Prepare update data
+    const updateData = {
+      name: name || existingUser.name,
+      email: email || existingUser.email,
+      employeeID: employeeID || existingUser.employeeID,
+      department: department || existingUser.department,
+      branch: branch || existingUser.branch,
+      role: role || existingUser.role,
+      approval_status: approval_status || existingUser.approval_status,
+    };
+
+    // Detect changed fields
+    const changedFields = [];
+    Object.keys(updateData).forEach((key) => {
+      if (updateData[key] != existingUser[key]) {
+        changedFields.push({
+          field: key,
+          old: existingUser[key],
+          new: updateData[key],
+        });
+      }
+    });
+
+    // Update user basic info
+    await updateUser(id, updateData);
+
+    // Update password if provided
+    if (password) {
+      const hashedPassword = await bcrypt.hash(password, 10);
+      await updateUserPassword(id, hashedPassword);
+      changedFields.push({ field: "password", old: "******", new: "******" });
+    }
+
+    // Prepare tagline
+    let tagline = null;
+    if (approval_status === "Approved") {
+      tagline = "Your account has been approved ✅";
+    } else if (approval_status === "Rejected") {
+      tagline = "Your account has been rejected ❌";
+    } else if (changedFields.length > 0) {
+      tagline = "Your account information has been updated ✨";
+    }
+
+    // Send email
+    if (changedFields.length > 0 && existingUser.email) {
+      let details = "";
+      changedFields.forEach((change) => {
+        details += `- ${change.field}: "${change.old}" → "${change.new}"\n`;
+      });
+
+      const emailBody = `Hello ${existingUser.name},\n\n${tagline}.\n\nChanges made:\n${details}\n\nRegards,\nSuper Admin Team`;
+
+      await sendEmail(existingUser.email, "Account Update Notification", emailBody);
+    }
+
+    res.sendEncrypted({
+      message: "User updated successfully",
+      approval_status: updateData.approval_status,
+    });
+  } catch (error) {
+    console.error("Update user error:", error);
+    res.status(500).sendEncrypted({ message: "Server error", error: error.message });
+  }
+};
+
+
+
 module.exports = {
   getAllUsersController,
   getUserByIdController,
   updateUserController,
   deleteUserController,
   getCurrentUserProfile,
-  updateCurrentUserProfile
+  updateCurrentUserProfile, 
+  updateUserStatusController
 }; 

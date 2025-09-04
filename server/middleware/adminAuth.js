@@ -29,4 +29,30 @@ const adminAuth = async (req, res, next) => {
   }
 };
 
-module.exports = adminAuth; 
+const superAdminAuth = async (req, res, next) => {
+  try {
+    await verifyToken(req, res, async () => {
+      const { employeeID } = req.user;
+
+      const user = await getUserByEmployeeID(employeeID);
+
+      if (!user) {
+        return res.status(404).sendEncrypted({ message: 'User not found' });
+      }
+
+      if (user.role !== 'super_admin') {
+        return res
+          .status(403)
+          .sendEncrypted({ message: 'Access denied. Super Admin privileges required.' });
+      }
+
+      req.superAdminUser = user;
+      next();
+    });
+  } catch (error) {
+    console.error('SuperAdmin auth error:', error);
+    res.status(500).sendEncrypted({ message: 'Server error' });
+  }
+};
+
+module.exports = {adminAuth, superAdminAuth}; 

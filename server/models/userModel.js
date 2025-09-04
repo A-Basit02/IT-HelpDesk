@@ -27,7 +27,7 @@ const getUserByEmployeeID = async (employeeID) => {
 const getAllUsers = async () => {
   const request = pool.request();
   const result = await request
-    .query("SELECT id, name, email, employeeID, department, branch, role FROM users ORDER BY id DESC ");
+    .query("SELECT id, name, email, employeeID, department, branch, role, approval_status FROM users ORDER BY id DESC ");
   return result.recordset;
 };
 
@@ -41,9 +41,10 @@ const createUser = async (user) => {
     .input("department", sql.VarChar, user.department)
     .input("branch", sql.VarChar, user.branch)
     .input("role", sql.VarChar, user.role)
+    .input("approval_status", sql.VarChar, user.approval_status)
     .query(`
-      INSERT INTO Users (name, email, password, employeeID, department, branch, role)
-      VALUES (@name, @email, @password, @employeeID, @department, @branch, @role)
+      INSERT INTO Users (name, email, password, employeeID, department, branch, role, approval_status)
+      VALUES (@name, @email, @password, @employeeID, @department, @branch, @role, @approval_status)
     `);
 };
 
@@ -57,10 +58,11 @@ const updateUser = async (id, userData) => {
     .input("department", sql.VarChar, userData.department)
     .input("branch", sql.VarChar, userData.branch)
     .input("role", sql.VarChar, userData.role)
+    .input("approval_status", sql.VarChar, userData.approval_status)
     .query(`
       UPDATE Users 
       SET name = @name, email = @email, employeeID = @employeeID, 
-          department = @department, branch = @branch, role = @role
+          department = @department, branch = @branch, role = @role, approval_status = @approval_status
       WHERE id = @id
     `);
 };
