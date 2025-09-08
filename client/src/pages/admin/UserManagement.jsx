@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import React, { useEffect, useState, useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Container,
   Typography,
@@ -15,16 +15,16 @@ import {
   CircularProgress,
   InputAdornment,
   Chip,
-  Paper
-} from '@mui/material';
+  Paper,
+} from "@mui/material";
 import {
   Add as AddIcon,
   Search as SearchIcon,
   FilterList as FilterIcon,
   Refresh as RefreshIcon,
-  People as PeopleIcon
-} from '@mui/icons-material';
-import { toast } from 'react-toastify';
+  People as PeopleIcon,
+} from "@mui/icons-material";
+import { toast } from "react-toastify";
 
 // Redux actions
 import {
@@ -35,24 +35,19 @@ import {
   clearError,
   clearSuccess,
   setSearchTerm,
-  setFilterRole
-} from '../../redux/userSlice';
+  setFilterRole,
+  updateUserStatusById,
+} from "../../redux/userSlice";
 
 // Components
-import UserTable from '../../components/user/UserTable';
-import UserForm from '../../components/user/UserForm';
-import DeleteUserDialog from '../../components/user/DeleteUserDialog';
+import UserTable from "../../components/user/UserTable";
+import UserForm from "../../components/user/UserForm";
+import DeleteUserDialog from "../../components/user/DeleteUserDialog";
 
 const UserManagement = () => {
   const dispatch = useDispatch();
-  const { 
-    users, 
-    loading, 
-    error, 
-    success, 
-    searchTerm, 
-    filterRole 
-  } = useSelector((state) => state.users);
+  const { users, loading, error, success, searchTerm, filterRole } =
+    useSelector((state) => state.users);
 
   // Local state
   const [formOpen, setFormOpen] = useState(false);
@@ -83,18 +78,19 @@ const UserManagement = () => {
 
     // Apply search filter
     if (searchTerm) {
-      filtered = filtered.filter(user =>
-        user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.employeeID.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.branch.toLowerCase().includes(searchTerm.toLowerCase())
+      filtered = filtered.filter(
+        (user) =>
+          user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.employeeID.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.department.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.branch.toLowerCase().includes(searchTerm.toLowerCase())
       );
     }
 
     // Apply role filter
-    if (filterRole !== 'all') {
-      filtered = filtered.filter(user => user.role === filterRole);
+    if (filterRole !== "all") {
+      filtered = filtered.filter((user) => user.role === filterRole);
     }
 
     return filtered;
@@ -136,27 +132,68 @@ const UserManagement = () => {
   // Handle view user (for future implementation)
   const handleViewUser = (user) => {
     // TODO: Implement user detail view
-    console.log('View user:', user);
+    console.log("View user:", user);
   };
+
+  // // Handle form submit Preious
+  // const handleFormSubmit = async (userData) => {
+  //   try {
+  //     if (selectedUser) {
+  //       // Update existing user
+  //       await dispatch(updateUserById({ userId: selectedUser.id, userData })).unwrap();
+  //       toast.success('User updated successfully');
+  //     } else {
+  //       // Create new user
+  //       await dispatch(createNewUser(userData)).unwrap();
+  //       toast.success('User created successfully');
+  //     }
+  //     setFormOpen(false);
+  //     setSelectedUser(null);
+  //     // Refresh user list
+  //     dispatch(fetchAllUsers());
+  //   } catch (error) {
+  //     toast.error(error.message || 'Operation failed');
+  //   }
+  // };
+
+  const { user: currentUser } = useSelector((state) => state.auth);
+  const currentUserRole = currentUser?.role;
 
   // Handle form submit
   const handleFormSubmit = async (userData) => {
     try {
       if (selectedUser) {
-        // Update existing user
-        await dispatch(updateUserById({ userId: selectedUser.id, userData })).unwrap();
-        toast.success('User updated successfully');
+        // 🟢 Update existing user
+        if (currentUserRole === "super_admin") {
+          // Call approval update API
+          await dispatch(
+            updateUserStatusById({ userId: selectedUser.id, userData })
+          ).unwrap();
+          toast.success("User approval status updated successfully");
+        } else if (currentUserRole === "admin") {
+          // Call normal update API
+          await dispatch(
+            updateUserById({ userId: selectedUser.id, userData })
+          ).unwrap();
+          toast.success("User updated successfully");
+        } else {
+          toast.error("You are not authorized to update users");
+          return;
+        }
       } else {
-        // Create new user
+        // 🟢 Create new user (for both admin & super_admin)
         await dispatch(createNewUser(userData)).unwrap();
-        toast.success('User created successfully');
+        toast.success("User created successfully");
       }
+
+      // Close modal and reset
       setFormOpen(false);
       setSelectedUser(null);
+
       // Refresh user list
       dispatch(fetchAllUsers());
     } catch (error) {
-      toast.error(error.message || 'Operation failed');
+      toast.error(error.message || "Operation failed");
     }
   };
 
@@ -164,22 +201,22 @@ const UserManagement = () => {
   const handleDeleteConfirm = async () => {
     try {
       await dispatch(deleteUserById(userToDelete.id)).unwrap();
-      toast.success('User deleted successfully');
+      toast.success("User deleted successfully");
       setDeleteDialogOpen(false);
       setUserToDelete(null);
       // Refresh user list
       dispatch(fetchAllUsers());
     } catch (error) {
-      toast.error(error.message || 'Failed to delete user');
+      toast.error(error.message || "Failed to delete user");
     }
   };
 
   // Get statistics
   const stats = useMemo(() => {
     const totalUsers = users.length;
-    const adminUsers = users.filter(user => user.role === 'admin').length;
-    const regularUsers = users.filter(user => user.role === 'user').length;
-    
+    const adminUsers = users.filter((user) => user.role === "admin").length;
+    const regularUsers = users.filter((user) => user.role === "user").length;
+
     return { totalUsers, adminUsers, regularUsers };
   }, [users]);
 
@@ -187,47 +224,51 @@ const UserManagement = () => {
     <Container maxWidth="xl" sx={{ py: 4 }}>
       {/* Header */}
       <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" component="h1" sx={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: 2, 
-          mb: 2,
-          fontWeight: 'bold'
-        }}>
+        <Typography
+          variant="h4"
+          component="h1"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 2,
+            mb: 2,
+            fontWeight: "bold",
+          }}
+        >
           <PeopleIcon fontSize="large" color="primary" />
           User Management
         </Typography>
-        
+
         {/* Statistics */}
-        <Box sx={{ display: 'flex', gap: 2, mb: 3}}>
-          <Chip 
-            label={`Total Users: ${stats.totalUsers}`} 
-            color="primary" 
+        <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
+          <Chip
+            label={`Total Users: ${stats.totalUsers}`}
+            color="primary"
             variant="outlined"
-            size='large'
-            sx={{ fontSize: '1.2rem' }} 
+            size="large"
+            sx={{ fontSize: "1.2rem" }}
           />
-          <Chip 
-            label={`Admins: ${stats.adminUsers}`} 
-            color="error" 
+          <Chip
+            label={`Admins: ${stats.adminUsers}`}
+            color="error"
             variant="outlined"
-            size='large'
-            sx={{ fontSize: '1.2rem' }} 
+            size="large"
+            sx={{ fontSize: "1.2rem" }}
           />
-          <Chip 
-            label={`Regular Users: ${stats.regularUsers}`} 
-            color="info" 
+          <Chip
+            label={`Regular Users: ${stats.regularUsers}`}
+            color="info"
             variant="outlined"
-            size='large'
-            sx={{ fontSize: '1.2rem' }} 
+            size="large"
+            sx={{ fontSize: "1.2rem" }}
           />
         </Box>
       </Box>
 
       {/* Controls */}
-      <Paper sx={{ p: 3, mb: 3 , width: '100%'}}>
+      <Paper sx={{ p: 3, mb: 3, width: "100%" }}>
         <Grid container spacing={2} alignItems="center">
-          <Grid item xs={12} sm={6} md={3} >
+          <Grid item xs={12} sm={6} md={3}>
             <TextField
               fullWidth
               placeholder="Search users..."
@@ -242,7 +283,7 @@ const UserManagement = () => {
               }}
             />
           </Grid>
-          
+
           <Grid item xs={12} sm={6} md={2}>
             <FormControl fullWidth>
               <InputLabel>Filter by Role</InputLabel>
@@ -262,7 +303,7 @@ const UserManagement = () => {
               </Select>
             </FormControl>
           </Grid>
-          
+
           <Grid item xs={12} sm={6} md={2}>
             <Button
               fullWidth
@@ -274,16 +315,16 @@ const UserManagement = () => {
               Refresh
             </Button>
           </Grid>
-          
+
           <Grid item xs={12} sm={6} md={2}>
             <Button
               fullWidth
               variant="contained"
               onClick={handleAddUser}
               startIcon={<AddIcon />}
-              sx={{ 
-                backgroundColor: 'success.main',
-                '&:hover': { backgroundColor: 'success.dark' }
+              sx={{
+                backgroundColor: "success.main",
+                "&:hover": { backgroundColor: "success.dark" },
               }}
             >
               Add User
@@ -294,22 +335,20 @@ const UserManagement = () => {
 
       {/* Content */}
       {loading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", py: 8 }}>
           <CircularProgress size={60} />
         </Box>
       ) : filteredUsers.length === 0 ? (
-        <Paper sx={{ p: 8, textAlign: 'center' }}>
+        <Paper sx={{ p: 8, textAlign: "center" }}>
           <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-            {searchTerm || filterRole !== 'all' 
-              ? 'No users found matching your criteria' 
-              : 'No users found'
-            }
+            {searchTerm || filterRole !== "all"
+              ? "No users found matching your criteria"
+              : "No users found"}
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            {searchTerm || filterRole !== 'all' 
-              ? 'Try adjusting your search or filter criteria' 
-              : 'Get started by adding your first user'
-            }
+            {searchTerm || filterRole !== "all"
+              ? "Try adjusting your search or filter criteria"
+              : "Get started by adding your first user"}
           </Typography>
         </Paper>
       ) : (
@@ -350,4 +389,4 @@ const UserManagement = () => {
   );
 };
 
-export default UserManagement; 
+export default UserManagement;

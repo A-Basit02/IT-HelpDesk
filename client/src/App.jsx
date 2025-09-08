@@ -78,7 +78,6 @@ function App() {
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/tickets/:ticketNumber" element={<AdminTicketDetails />} />
-            {/* <Route path="/admin/analytics" element={<Analytics />} /> */}
           </Route>
         </Route>
       </Routes>

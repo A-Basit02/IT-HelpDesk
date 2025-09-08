@@ -1,11 +1,12 @@
 import axiosInstance from './axiosInstance';
 
-// Get all users (admin only)
+// Get all users (admins only)
 export const getAllUsers = async () => {
   try {
     const response = await axiosInstance.get('/users/all');
     return response.data;
   } catch (error) {
+    console.log(error)
     throw error.response?.data || { message: 'Failed to fetch users' };
   }
 };
@@ -69,3 +70,12 @@ export const createUser = async (userData) => {
     throw error.response?.data || { message: 'Failed to create user' };
   }
 }; 
+
+export const updateUserStatus = async (userId, userData) => {
+  try {
+    const response = await axiosInstance.put(`/users/${userId}/approval`, userData);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || { message: 'Failed to update user' };
+  }
+};

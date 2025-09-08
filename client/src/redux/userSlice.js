@@ -86,6 +86,18 @@ export const updateCurrentUserProfile = createAsyncThunk(
   }
 );
 
+export const updateUserStatusById = createAsyncThunk(
+  'users/updateUserStatusById',
+  async ({ userId, userData }, { rejectWithValue }) => {
+    try {
+      const response = await userApi.updateUserStatus(userId, userData);
+      return { userId, userData, response };
+    } catch (error) {
+      return rejectWithValue(error);
+    }
+  }
+);
+
 const initialState = {
   users: [],
   currentUserProfile: null,
@@ -246,6 +258,24 @@ const userSlice = createSlice({
       .addCase(updateCurrentUserProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload?.message || 'Failed to update profile';
+      })
+
+       // Update user Status
+      .addCase(updateUserStatusById.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUserStatusById.fulfilled, (state, action) => {
+        state.loading = false;
+        const { userId, userData } = action.payload;
+        state.users = state.users.map(user => 
+          user.id === userId ? { ...user, ...userData } : user
+        );
+        state.success = action.payload.response.message;
+      })
+      .addCase(updateUserStatusById.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || 'Failed to update user';
       });
   }
 });
