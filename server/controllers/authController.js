@@ -92,7 +92,7 @@ const login = async (req, res) => {
     }
     console.log("\n\n\nuser.approval_status", user.approval_status);
     
-    if (user.approval_status === "Reject") {
+    if (user.approval_status === "Rejected") {
       return res.sendEncrypted({
         message: "You are not allowed to access this application",
       });

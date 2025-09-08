@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const verifyToken = require('../middleware/verifyToken');
-const {adminAuth, superAdminAuth} = require('../middleware/adminAuth');
+const {adminAuth, superAdminAuth, adminORsuperAdmin} = require('../middleware/adminAuth');
 const {
   getAllUsersController,
   getUserByIdController,
@@ -13,13 +13,12 @@ const {
 } = require('../controllers/userController');
 
 // Admin routes (require admin privileges)
-router.get('/all', adminAuth, getAllUsersController);
+router.get('/all',  adminORsuperAdmin ,getAllUsersController);
 router.get('/:id', adminAuth, getUserByIdController);
 router.put('/:id', adminAuth, updateUserController);
 router.delete('/:id', adminAuth, deleteUserController);
 // SuperAdmin Route
-router.put('/:id/approval', updateUserStatusController);
-router.get('/all', getAllUsersController);
+router.put('/:id/approval', superAdminAuth, updateUserStatusController);
 
 
 // User profile routes (for any authenticated user)
