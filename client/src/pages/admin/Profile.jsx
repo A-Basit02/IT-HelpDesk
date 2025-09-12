@@ -6,7 +6,7 @@ import { Navigate } from "react-router-dom";
 const Profile = () => {
   const { user, loading } = useSelector((state) => state.auth);
 
-  console.log("AdminProfile component - user:", user, "loading:", loading);
+  // console.log("AdminProfile component - user:", user, "loading:", loading);
 
   if (loading) {
     return (

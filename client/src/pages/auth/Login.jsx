@@ -83,7 +83,7 @@ const Login = () => {
           color="primary"
           fullWidth
           disabled={loading}
-          sx={{ mt: 3 }}
+          sx={{ mt: 3 , backgroundColor: "rgb(90, 4, 131)",}}
         >
           {loading ? "Logging in..." : "Login"}
         </Button>

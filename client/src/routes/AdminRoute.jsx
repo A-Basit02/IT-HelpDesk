@@ -5,7 +5,7 @@ import { CircularProgress, Box } from "@mui/material";
 const AdminRoute = () => {
   const { user, loading, isInitialized } = useSelector((state) => state.auth);
 
-  console.log("AdminRoute user:", user, "loading:", loading, "isInitialized:", isInitialized);
+  // console.log("AdminRoute user:", user, "loading:", loading, "isInitialized:", isInitialized);
 
   // Wait for authentication to be initialized
   if (!isInitialized || loading) {

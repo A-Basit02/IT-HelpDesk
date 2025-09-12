@@ -107,7 +107,7 @@ const UserTable = ({ users, onEdit, onDelete }) => {
       <TableContainer>
         <Table sx={{ minWidth: 650 }} aria-label="users table">
           <TableHead>
-            <TableRow sx={{ backgroundColor: 'primary.main' }}>
+            <TableRow sx={{ backgroundColor: "rgb(90, 4, 131)" }}>
               <TableCell sx={{ color: 'white', fontWeight: 'bold', width: 60 }}>
                 <TableSortLabel
                   active={orderBy === 'id'}

@@ -122,7 +122,7 @@ const authSlice = createSlice({
         state.loading = true;
       })
       .addCase(getLoggedInUser.fulfilled, (state, action) => {
-        console.log("getLoggedInUser fulfilled, payload:", action.payload);
+        // console.log("getLoggedInUser fulfilled, payload:", action.payload);
         state.loading = false;
         state.user = action.payload;
         // Update token in state from localStorage
