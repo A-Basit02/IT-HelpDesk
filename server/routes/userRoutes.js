@@ -14,9 +14,9 @@ const {
 
 // Admin routes (require admin privileges)
 router.get('/all',  adminORsuperAdmin ,getAllUsersController);
-router.get('/:id', adminAuth, getUserByIdController);
+router.get('/:id', adminORsuperAdmin, getUserByIdController);
 router.put('/:id', adminAuth, updateUserController);
-router.delete('/:id', adminAuth, deleteUserController);
+router.delete('/:id', adminORsuperAdmin, deleteUserController);
 // SuperAdmin Route
 router.put('/:id/approval', superAdminAuth, updateUserStatusController);
 

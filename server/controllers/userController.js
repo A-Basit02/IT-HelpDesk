@@ -55,7 +55,7 @@ const getUserByIdController = async (req, res) => {
 const updateUserController = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, employeeID, department, branch, role, password } = req.decryptedBody;
+    const { name, email, employeeID, department, branch, role, password, approval_status } = req.decryptedBody;
     
     if (!id) {
       return res.status(400).sendEncrypted({ message: 'User ID is required' });
@@ -74,7 +74,8 @@ const updateUserController = async (req, res) => {
       employeeID: employeeID || existingUser.employeeID,
       department: department || existingUser.department,
       branch: branch || existingUser.branch,
-      role: role || existingUser.role
+      role: role || existingUser.role,
+      approval_status: approval_status || existingUser.approval_status
     };
     
     // Update user basic info
@@ -107,13 +108,15 @@ const deleteUserController = async (req, res) => {
     // Check if user exists
     const existingUser = await getUserById(id);
     if (!existingUser) {
+      console.log ('Existing user ', existingUser);
       return res.status(404).sendEncrypted({ message: 'User not found' });
     }
     
     // Prevent admin from deleting themselves
-    if (existingUser.employeeID === req.adminUser.employeeID) {
-      return res.status(400).sendEncrypted({ message: 'Cannot delete your own account' });
-    }
+    console.log ('Exixting user employee ID', existingUser.employeeID);
+    // if (existingUser.employeeID === req.adminUser.employeeID) {
+    //   return res.status(400).sendEncrypted({ message: 'Cannot delete your own account' });
+    // }
     
     // Delete user
     await deleteUser(id);
