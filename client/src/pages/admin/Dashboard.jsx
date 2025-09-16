@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
+// import the service at top
+import { exportAllTickets } from "../../utils/ticketservices";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
@@ -24,6 +26,7 @@ import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import { useCallback } from "react";
 import TicketPieChart from "../../components/TicketPieChart";
+import DownloadIcon from "@mui/icons-material/Download";
 
 const AdminDashboard = () => {
   const [tickets, setTickets] = useState([]);
@@ -212,9 +215,19 @@ const AdminDashboard = () => {
             fetchTickets(1, limit, "", "");
           }}
           sx={{ minWidth: 200 }}
-          
         >
           Reset Filters
+        </Button>
+        {/* ✅ NEW Download Button */}
+        <Button
+          variant="contained"
+          color="success"
+          onClick={exportAllTickets}
+          size="2rem"
+          sx={{ minHeight: 50, pr : 1 , pl: 1}}
+          startIcon={<DownloadIcon />}
+        >
+           Download
         </Button>
       </Box>
       {loading ? (

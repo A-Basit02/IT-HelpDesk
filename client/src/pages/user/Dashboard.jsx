@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
+import { exportMyTickets } from "../../utils/ticketservices";
 import Button from "@mui/material/Button";
 import Grid from "@mui/material/Grid";
 import Card from "@mui/material/Card";
@@ -21,13 +22,15 @@ import FormControl from "@mui/material/FormControl";
 import Select from "@mui/material/Select";
 import MenuItem from "@mui/material/MenuItem";
 import { useCallback } from "react";
+import DownloadIcon from "@mui/icons-material/Download";
+
 
 const UserDashboard = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  
+
   // Pagination states
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -37,32 +40,41 @@ const UserDashboard = () => {
     totalTickets: 0,
     hasNextPage: false,
     hasPrevPage: false,
-    limit: 10
+    limit: 10,
   });
 
   // Fetch tickets with pagination and search
-  const fetchTickets = useCallback(async (currentPage = page, currentLimit = limit, currentSearch = searchTerm) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({
-        page: currentPage,
-        limit: currentLimit
-      });
-      
-      if (currentSearch.trim()) {
-        params.append('search', currentSearch);
+  const fetchTickets = useCallback(
+    async (
+      currentPage = page,
+      currentLimit = limit,
+      currentSearch = searchTerm
+    ) => {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          page: currentPage,
+          limit: currentLimit,
+        });
+
+        if (currentSearch.trim()) {
+          params.append("search", currentSearch);
+        }
+
+        const response = await axiosInstance.get(
+          `/tickets/my-tickets?${params.toString()}`
+        );
+        setTickets(response.data.tickets);
+        setPagination(response.data.pagination);
+        setError(null);
+      } catch (err) {
+        setError(err.response?.data?.message || "Failed to fetch tickets");
+      } finally {
+        setLoading(false);
       }
-      
-      const response = await axiosInstance.get(`/tickets/my-tickets?${params.toString()}`);
-      setTickets(response.data.tickets);
-      setPagination(response.data.pagination);
-      setError(null);
-    } catch (err) {
-      setError(err.response?.data?.message || "Failed to fetch tickets");
-    } finally {
-      setLoading(false);
-    }
-  }, [page, limit, searchTerm]);
+    },
+    [page, limit, searchTerm]
+  );
 
   useEffect(() => {
     fetchTickets();
@@ -118,12 +130,26 @@ const UserDashboard = () => {
 
   return (
     <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom sx={{ fontWeight: 'bold', mb: 4 }}>
+      <Typography
+        variant="h4"
+        component="h1"
+        gutterBottom
+        sx={{ fontWeight: "bold", mb: 4 }}
+      >
         User Dashboard
       </Typography>
 
       {/* Search Bar */}
-      <Box sx={{ mb: 4 }}>
+      <Box
+        sx={{
+          mb: 4,
+          display: "flex",
+          gap: 2,
+          alignItems: "center",
+          justifyContent: "center",
+          flexWrap: "wrap",
+        }}
+      >
         <TextField
           fullWidth
           variant="outlined"
@@ -139,10 +165,26 @@ const UserDashboard = () => {
           }}
           sx={{ maxWidth: 600 }}
         />
+        {/* ✅ NEW Download Button */}
+        <Button
+          variant="contained"
+          color="success"
+          onClick={exportMyTickets}
+          size="2rem"
+          sx={{ minHeight: 50, pr : 1 , pl: 1}}
+          startIcon={<DownloadIcon />}
+        >
+           Download
+        </Button>
       </Box>
 
       {loading ? (
-        <Box display="flex" justifyContent="center" alignItems="center" minHeight="200px">
+        <Box
+          display="flex"
+          justifyContent="center"
+          alignItems="center"
+          minHeight="200px"
+        >
           <CircularProgress />
         </Box>
       ) : error ? (
@@ -157,75 +199,89 @@ const UserDashboard = () => {
         <>
           <Grid container spacing={3}>
             {tickets.map((ticket) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={ticket.ticketNumber || ticket.id}
-                justifyContent='center'
-                alignItems='center'
+              <Grid
+                item
+                xs={12}
+                sm={6}
+                md={4}
+                lg={3}
+                key={ticket.ticketNumber || ticket.id}
+                justifyContent="center"
+                alignItems="center"
               >
-                <Card 
-                  sx={{ 
-                    height: '100%',
-                    width: '450px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    transition: 'transform 0.2s ease-in-out',
-                    '&:hover': {
-                      transform: 'scale(1.02)',
+                <Card
+                  sx={{
+                    height: "100%",
+                    width: "450px",
+                    display: "flex",
+                    flexDirection: "column",
+                    transition: "transform 0.2s ease-in-out",
+                    "&:hover": {
+                      transform: "scale(1.02)",
                       boxShadow: 4,
-                    }
+                    },
                   }}
                 >
-                  <CardContent sx={{ flexGrow: 1, overflow: 'hidden', width: '100%', justifyContent: 'center'}}>
-                    <Typography 
-                      variant="h6" 
-                      component="h2" 
-                      gutterBottom 
-                      sx={{ 
-                        fontWeight: 'bold',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                        fontSize: '2rem'
+                  <CardContent
+                    sx={{
+                      flexGrow: 1,
+                      overflow: "hidden",
+                      width: "100%",
+                      justifyContent: "center",
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      component="h2"
+                      gutterBottom
+                      sx={{
+                        fontWeight: "bold",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                        fontSize: "2rem",
                       }}
                     >
                       Ticket #{ticket.ticketNumber || ticket.id}
                     </Typography>
-                    
+
                     <Box sx={{ mb: 2 }}>
-                      <Chip 
-                        label={ticket.status || "N/A"} 
+                      <Chip
+                        label={ticket.status || "N/A"}
                         color={getStatusColor(ticket.status)}
                         size="medium"
-                        sx={{ mb: 1, fontSize: '1rem'}}
+                        sx={{ mb: 1, fontSize: "1rem" }}
                       />
                     </Box>
 
-                    <Typography 
-                      variant="body1" 
-                      color="text.secondary" 
-                      sx={{ 
-                        mb: 1,
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        display: '-webkit-box',
-                        WebkitLineClamp: 3,
-                        WebkitBoxOrient: 'vertical',
-                        lineHeight: 1.4,
-                        minHeight: '4.2em',
-                        wordBreak: 'break-word',
-                        fontSize: '1rem'
-                      }}
-                    >
-                      <strong>Description:</strong> {ticket.problemStatement || "N/A"}
-                    </Typography>
-
-                    <Typography 
-                      variant="caption" 
+                    <Typography
+                      variant="body1"
                       color="text.secondary"
                       sx={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        fontSize: '1rem',
-                        whiteSpace: 'nowrap'
+                        mb: 1,
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        display: "-webkit-box",
+                        WebkitLineClamp: 3,
+                        WebkitBoxOrient: "vertical",
+                        lineHeight: 1.4,
+                        minHeight: "4.2em",
+                        wordBreak: "break-word",
+                        fontSize: "1rem",
+                      }}
+                    >
+                      <strong>Description:</strong>{" "}
+                      {ticket.problemStatement || "N/A"}
+                    </Typography>
+
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        fontSize: "1rem",
+                        whiteSpace: "nowrap",
                       }}
                     >
                       <strong>Created:</strong> {formatDate(ticket.createdAt)}
@@ -233,8 +289,8 @@ const UserDashboard = () => {
                   </CardContent>
 
                   <CardActions sx={{ p: 2, pt: 0 }}>
-                    <Button 
-                      variant="contained" 
+                    <Button
+                      variant="contained"
                       component={Link}
                       to={`/user/tickets/${ticket.ticketNumber || ticket.id}`}
                       fullWidth
@@ -247,28 +303,42 @@ const UserDashboard = () => {
               </Grid>
             ))}
           </Grid>
-          
+
           {/* Pagination */}
           {!loading && !error && pagination.totalPages > 1 && (
-            <Box sx={{ mt: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+            <Box
+              sx={{
+                mt: 4,
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 2,
+              }}
+            >
               <Stack spacing={2} alignItems="center">
                 <Typography variant="body2" color="text.secondary">
-                  Showing {((pagination.currentPage - 1) * pagination.limit) + 1} to {Math.min(pagination.currentPage * pagination.limit, pagination.totalTickets)} of {pagination.totalTickets} tickets
+                  Showing {(pagination.currentPage - 1) * pagination.limit + 1}{" "}
+                  to{" "}
+                  {Math.min(
+                    pagination.currentPage * pagination.limit,
+                    pagination.totalTickets
+                  )}{" "}
+                  of {pagination.totalTickets} tickets
                 </Typography>
-                
-                <Pagination 
-                  count={pagination.totalPages} 
-                  page={pagination.currentPage} 
+
+                <Pagination
+                  count={pagination.totalPages}
+                  page={pagination.currentPage}
                   onChange={handlePageChange}
                   color="primary"
                   size="large"
-                  showFirstButton 
+                  showFirstButton
                   showLastButton
                 />
               </Stack>
-              
+
               {/* Items per page selector */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
                 <Typography variant="body2">Items per page:</Typography>
                 <FormControl size="small" sx={{ minWidth: 80 }}>
                   <Select

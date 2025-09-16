@@ -53,6 +53,7 @@ export const getLoggedInUser = createAsyncThunk(
       // Update token in localStorage if returned
       if (res.data.token) {
         localStorage.setItem("token", res.data.token);
+        // console.log ("token = ", res.data.token)
       }
       return res.data.user; // or res.data depending on backend
     } catch (err) {
