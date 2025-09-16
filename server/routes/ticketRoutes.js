@@ -8,10 +8,14 @@ const {
   updateTicket,
   deleteTicket,
   getTicketsByEmployeeId,
-  checkStaleTickets
+  checkStaleTickets,
+  importTickets,
+  exportMyTickets,
+  exportAllTickets
 } = require('../controllers/ticketController');
-
+const upload = require("../middleware/upload")
 const verifyToken = require('../middleware/verifyToken');
+
 
 // Routes
 router.post('/create', verifyToken, createTicket);
@@ -22,7 +26,9 @@ router.put('/edit/:ticketNumber', verifyToken, updateTicket);
 router.get('/my-tickets', verifyToken, getTicketsByEmployeeId);
 router.delete('/delete/:ticketNumber', verifyToken, deleteTicket);
 router.post('/check-stale-tickets', verifyToken, checkStaleTickets); // Manual check for testing
-
+router.get("/export/all", exportAllTickets);
+router.get("/export/my", verifyToken, exportMyTickets);
+router.post("/import", upload.single("file"), importTickets);
 
 
 module.exports = router;

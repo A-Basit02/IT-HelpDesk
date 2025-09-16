@@ -1,5 +1,9 @@
 const { pool, sql, poolConnect } = require("../config/db");
 const config = require("../config/db");
+const { exportTicketsToExcel } = require("../utils/exportHelper");
+const { importTicketsFromExcel } = require("../utils/importHelper");
+// const { pool, poolConnect } = require("../config/db");
+
 const { 
   sendEmail, 
   newTicketEmailTemplate, 
@@ -89,69 +93,6 @@ const createTicket = async (req, res) => {
     res.sendEncrypted({ message: "Server error", error: err.message });
   }
 };
-// const getAllTickets = async (req, res) => {
-//   try {
-//     await poolConnect;
-    
-//     // Get pagination and search parameters from query
-//     const page = parseInt(req.query.page) || 1;
-//     const limit = parseInt(req.query.limit) || 10;
-//     const search = req.query.search || '';
-//     const offset = (page - 1) * limit;
-    
-//     // Build WHERE clause for search
-//     let whereClause = '';
-//     let searchParams = [];
-    
-//     if (search.trim()) {
-//       whereClause = `
-//         WHERE ticketNumber LIKE '%${search}%' 
-//         OR name LIKE '%${search}%' 
-//         OR employeeID LIKE '%${search}%' 
-//         OR status LIKE '%${search}%' 
-//         OR problemStatement LIKE '%${search}%'
-//       `;
-//     }
-    
-//     // Get total count for pagination with search
-//     const countQuery = `SELECT COUNT(*) as total FROM Tickets ${whereClause}`;
-//     const countResult = await pool.request().query(countQuery);
-    
-//     const totalTickets = countResult.recordset[0].total;
-//     const totalPages = Math.ceil(totalTickets / limit);
-    
-//     // Get paginated tickets with search
-//     const result = await pool
-//       .request()
-//       .input("offset", sql.Int, offset)
-//       .input("limit", sql.Int, limit)
-//       .query(`
-//         SELECT id, employeeID, name, ticketNumber, status, problem_dateOccurred, problemStatement, createdAt, updatedAt
-//         FROM Tickets
-//         ${whereClause}
-//         ORDER BY createdAt DESC
-//         OFFSET @offset ROWS
-//         FETCH NEXT @limit ROWS ONLY
-//       `);
-
-//     res.sendEncrypted({ 
-//       tickets: result.recordset,
-//       pagination: {
-//         currentPage: page,
-//         totalPages: totalPages,
-//         totalTickets: totalTickets,
-//         hasNextPage: page < totalPages,
-//         hasPrevPage: page > 1,
-//         limit: limit
-//       }
-//     });
-//   } catch (err) {
-//     console.error("Get Tickets Error:", err);
-//     res.sendEncrypted({ message: "Server error", error: err.message });
-//   }
-// };
-
-// controllers/ticketController.js
 
 const getAllTickets = async (req, res) => {
   try {
@@ -299,7 +240,6 @@ const updateTicket = async (req, res) => {
   }
 };
 
-
 const getTicketById = async (req, res) => {
   try {
     await poolConnect;
@@ -401,7 +341,6 @@ const getTicketsByEmployeeId = async (req, res) => {
   }
 };
 
-
 const deleteTicket = async (req, res) => {
   try {
     const { ticketNumber } = req.params;
@@ -440,6 +379,170 @@ const checkStaleTickets = async (req, res) => {
   }
 };
 
+// Controller for ticket export 
+// const exportTickets = async (req, res) => {
+//   try {
+//     await poolConnect;
+
+//     const result = await pool.request().query(`
+//       SELECT ticketNumber, employeeID, name, status, problem_dateOccurred, problemStatement, createdAt, updatedAt
+//       FROM Tickets
+//       ORDER BY createdAt DESC
+//     `);
+
+//     const tickets = result.recordset;
+
+//     if (!tickets || tickets.length === 0) {
+//       return res.sendEncrypted({ message: "No tickets found to export" });
+//     }
+
+//     const workbook = await exportTicketsToExcel(tickets);
+
+//     // Set response headers
+//     res.setHeader(
+//       "Content-Type",
+//       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+//     );
+//     res.setHeader(
+//       "Content-Disposition",
+//       "attachment; filename=tickets.xlsx"
+//     );
+
+//     // Write workbook to response
+//     await workbook.xlsx.write(res);
+//     res.end();
+//   } catch (error) {
+//     console.error("❌ Error exporting tickets:", error);
+//     res.sendEncrypted({ message: "Server error", error: error.message });
+//   }
+// };
+
+// 🔹 Export only current user's tickets
+const exportMyTickets = async (req, res) => {
+  try {
+    const employeeID = req.user.employeeID; // 👈 from token
+    await poolConnect;
+
+    // Fetch all tickets of this user (no pagination)
+    const result = await pool
+      .request()
+      .input("employeeID", sql.VarChar, employeeID)
+      .query(`
+        SELECT ticketNumber, employeeID, name, status, problem_dateOccurred, problemStatement, createdAt, updatedAt
+        FROM Tickets
+        WHERE employeeID = @employeeID
+        ORDER BY createdAt DESC
+      `);
+
+    const tickets = result.recordset;
+
+    if (!tickets || tickets.length === 0) {
+      return res.sendEncrypted({ message: "No tickets found for this user" });
+    }
+
+    // Generate workbook
+    const workbook = await exportTicketsToExcel(tickets);
+
+    // Send Excel file
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=my_tickets.xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("❌ Error exporting my tickets:", error);
+    res.sendEncrypted({ message: "Server error", error: error.message });
+  }
+};
+
+// 🔹 Export all tickets (admin / super_admin)
+const exportAllTickets = async (req, res) => {
+  try {
+    await poolConnect;
+
+    // Fetch all tickets (no pagination)
+    const result = await pool.request().query(`
+      SELECT ticketNumber, employeeID, name, status, problem_dateOccurred, problemStatement, createdAt, updatedAt
+      FROM Tickets
+      ORDER BY createdAt DESC
+    `);
+
+    const tickets = result.recordset;
+
+    if (!tickets || tickets.length === 0) {
+      return res.sendEncrypted({ message: "No tickets found in system" });
+    }
+
+    // Generate workbook
+    const workbook = await exportTicketsToExcel(tickets);
+
+    // Send Excel file
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=all_tickets.xlsx"
+    );
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (error) {
+    console.error("❌ Error exporting all tickets:", error);
+    res.sendEncrypted({ message: "Server error", error: error.message });
+  }
+};
+
+// Controller for imoport Tickits from excel file 
+
+const importTickets = async (req, res) => {
+  try {
+    await poolConnect;
+
+    if (!req.file) {
+      return res.sendEncrypted({ message: "No file uploaded" });
+    }
+
+    // Parse Excel into objects
+    const tickets = await importTicketsFromExcel(req.file.path);
+
+    if (!tickets.length) {
+      return res.sendEncrypted({ message: "Excel file is empty!" });
+    }
+
+    // Insert each ticket into DB
+    for (const ticket of tickets) {
+      await pool.request().query(`
+        INSERT INTO Tickets 
+        (ticketNumber, employeeID, name, status, problem_dateOccurred, problemStatement, createdAt, updatedAt)
+        VALUES (
+          '${ticket.ticketNumber}', 
+          '${ticket.employeeID}', 
+          '${ticket.name}', 
+          '${ticket.status}', 
+          '${ticket.problem_dateOccurred}', 
+          '${ticket.problemStatement}', 
+          '${ticket.createdAt}', 
+          '${ticket.updatedAt}'
+        )
+      `);
+    }
+
+    res.sendEncrypted({ message: "Tickets imported successfully" });
+  } catch (error) {
+    console.error("❌ Error importing tickets:", error);
+    res.sendEncrypted({ message: "Server error", error: error.message });
+  }
+};
+
+
 module.exports = {
   createTicket,
   getTicketById,
@@ -448,5 +551,8 @@ module.exports = {
   updateTicket,
   deleteTicket,
   getTicketsByEmployeeId,
-  checkStaleTickets
+  checkStaleTickets,
+  exportAllTickets,
+  exportMyTickets, 
+  importTickets
 };
