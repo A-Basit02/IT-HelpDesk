@@ -2,6 +2,7 @@ const { pool, sql, poolConnect } = require("../config/db");
 const config = require("../config/db");
 const { exportTicketsToExcel } = require("../utils/exportHelper");
 const { importTicketsFromExcel } = require("../utils/importHelper");
+const mapSqlError = require("../utils/errorMapper"); //
 // const { pool, poolConnect } = require("../config/db");
 
 const { 
@@ -379,43 +380,6 @@ const checkStaleTickets = async (req, res) => {
   }
 };
 
-// Controller for ticket export 
-// const exportTickets = async (req, res) => {
-//   try {
-//     await poolConnect;
-
-//     const result = await pool.request().query(`
-//       SELECT ticketNumber, employeeID, name, status, problem_dateOccurred, problemStatement, createdAt, updatedAt
-//       FROM Tickets
-//       ORDER BY createdAt DESC
-//     `);
-
-//     const tickets = result.recordset;
-
-//     if (!tickets || tickets.length === 0) {
-//       return res.sendEncrypted({ message: "No tickets found to export" });
-//     }
-
-//     const workbook = await exportTicketsToExcel(tickets);
-
-//     // Set response headers
-//     res.setHeader(
-//       "Content-Type",
-//       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-//     );
-//     res.setHeader(
-//       "Content-Disposition",
-//       "attachment; filename=tickets.xlsx"
-//     );
-
-//     // Write workbook to response
-//     await workbook.xlsx.write(res);
-//     res.end();
-//   } catch (error) {
-//     console.error("❌ Error exporting tickets:", error);
-//     res.sendEncrypted({ message: "Server error", error: error.message });
-//   }
-// };
 
 // 🔹 Export only current user's tickets
 const exportMyTickets = async (req, res) => {
@@ -502,45 +466,137 @@ const exportAllTickets = async (req, res) => {
 
 // Controller for imoport Tickits from excel file 
 
+// const importTickets = async (req, res) => {
+//   try {
+//     await poolConnect;
+
+//     if (!req.file) {
+//       return res.sendEncrypted({ message: "No file uploaded" });
+//     }
+
+//     // Parse Excel into objects
+//     const tickets = await importTicketsFromExcel(req.file.path);
+
+//     if (!tickets.length) {
+//       return res.sendEncrypted({ message: "Excel file is empty!" });
+//     }
+
+//     // Insert each ticket into DB
+//     for (const ticket of tickets) {
+//       await pool.request().query(`
+//         INSERT INTO Tickets 
+//         (ticketNumber, employeeID, name, status, problem_dateOccurred, problemStatement, createdAt, updatedAt)
+//         VALUES (
+//           '${ticket.ticketNumber}', 
+//           '${ticket.employeeID}', 
+//           '${ticket.name}', 
+//           '${ticket.status}', 
+//           '${ticket.problem_dateOccurred}', 
+//           '${ticket.problemStatement}', 
+//           '${ticket.createdAt}', 
+//           '${ticket.updatedAt}'
+//         )
+//       `);
+//     }
+
+//     res.sendEncrypted({ message: "Tickets imported successfully" });
+//   } catch (error) {
+//     console.error("❌ Error importing tickets:", error);
+//     res.sendEncrypted({ message: "Server error", error: error.message });
+//   }
+// };
+
+const formatDate = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return isNaN(date.getTime()) ? null : date.toISOString(); // SQL Server accepts ISO
+};
+
 const importTickets = async (req, res) => {
   try {
     await poolConnect;
 
     if (!req.file) {
-      return res.sendEncrypted({ message: "No file uploaded" });
+      return res.sendEncrypted({ 
+        message: "No file uploaded", 
+        errors: ["Please upload an Excel file first."] 
+      });
     }
 
-    // Parse Excel into objects
     const tickets = await importTicketsFromExcel(req.file.path);
 
     if (!tickets.length) {
-      return res.sendEncrypted({ message: "Excel file is empty!" });
+      return res.sendEncrypted({ 
+        message: "Excel file is empty!", 
+        errors: ["No rows found in Excel file."] 
+      });
     }
 
-    // Insert each ticket into DB
-    for (const ticket of tickets) {
-      await pool.request().query(`
-        INSERT INTO Tickets 
-        (ticketNumber, employeeID, name, status, problem_dateOccurred, problemStatement, createdAt, updatedAt)
-        VALUES (
-          '${ticket.ticketNumber}', 
-          '${ticket.employeeID}', 
-          '${ticket.name}', 
-          '${ticket.status}', 
-          '${ticket.problem_dateOccurred}', 
-          '${ticket.problemStatement}', 
-          '${ticket.createdAt}', 
-          '${ticket.updatedAt}'
-        )
-      `);
+    let successCount = 0;
+    let errors = [];
+
+    for (let i = 0; i < tickets.length; i++) {
+      const ticket = tickets[i];
+
+      try {
+        // ✅ Validate
+        if (!ticket.employeeID) {
+          throw new Error("EmployeeID cannot be null");
+        }
+        if (
+          ticket.problem_dateOccurred &&
+          isNaN(new Date(ticket.problem_dateOccurred).getTime())
+        ) {
+          throw new Error(`Invalid date format: ${ticket.problem_dateOccurred}`);
+        }
+
+        // ✅ Generate new ticket number (same logic as createTicket)
+        const seqResult = await pool
+          .request()
+          .query(
+            `INSERT INTO TicketSequence DEFAULT VALUES; SELECT SCOPE_IDENTITY() AS ticketId`
+          );
+
+        const ticketId = seqResult.recordset[0].ticketId;
+        const ticketNumber = `TKT-${String(ticketId).padStart(4, "0")}`;
+
+        // ✅ Safe insert into Tickets
+        await pool
+          .request()
+          .input("ticketNumber", sql.VarChar, ticketNumber)
+          .input("employeeID", sql.VarChar, ticket.employeeID)
+          .input("name", sql.VarChar, ticket.name || "")
+          .input("status", sql.VarChar, ticket.status || "Pending")
+          .input("problem_dateOccurred", sql.DateTime, ticket.problem_dateOccurred || null)
+          .input("problemStatement", sql.VarChar, ticket.problemStatement || "")
+          .input("createdAt", sql.DateTime, ticket.createdAt || new Date())
+          .input("updatedAt", sql.DateTime, ticket.updatedAt || new Date())
+          .query(`
+            INSERT INTO Tickets 
+            (ticketNumber, employeeID, name, status, problem_dateOccurred, problemStatement, createdAt, updatedAt)
+            VALUES (@ticketNumber, @employeeID, @name, @status, @problem_dateOccurred, @problemStatement, @createdAt, @updatedAt)
+          `);
+
+        successCount++;
+      } catch (err) {
+        const userFriendly = mapSqlError(err);
+        errors.push(`Row ${i + 2}: ${userFriendly}`);
+      }
     }
 
-    res.sendEncrypted({ message: "Tickets imported successfully" });
+    return res.sendEncrypted({
+      message: `Import completed:\nTickets inserted = ${successCount}\nFailed = ${errors.length}`,
+      errors,
+    });
   } catch (error) {
     console.error("❌ Error importing tickets:", error);
-    res.sendEncrypted({ message: "Server error", error: error.message });
+    return res.sendEncrypted({ 
+      message: "Unexpected server error", 
+      errors: [error.message] 
+    });
   }
 };
+
 
 
 module.exports = {
@@ -556,3 +612,4 @@ module.exports = {
   exportMyTickets, 
   importTickets
 };
+
