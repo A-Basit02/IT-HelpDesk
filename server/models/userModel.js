@@ -1,3 +1,4 @@
+const { query } = require("mssql");
 const { sql, pool } = require("../config/db");
 
 const getUserByEmail = async (email) => {
@@ -67,12 +68,12 @@ const updateUser = async (id, userData) => {
     `);
 };
 
-const updateUserPassword = async (id, hashedPassword) => {
+const updateUserPassword = async (employeeID, hashedPassword) => {
   const request = pool.request();
   await request
-    .input("id", sql.Int, id)
+    .input("employeeID", sql.VarChar, employeeID)
     .input("password", sql.VarChar, hashedPassword)
-    .query("UPDATE Users SET password = @password WHERE id = @id");
+    .query("UPDATE Users SET password = @password WHERE employeeID = @employeeID");
 };
 
 const deleteUser = async (id) => {
@@ -81,6 +82,45 @@ const deleteUser = async (id) => {
     .input("id", sql.Int, id)
     .query("DELETE FROM Users WHERE id = @id");
 };
+
+const setResetOTP = async (employeeID, otp, expiry) => {
+  try {
+    const request = pool.request();
+    await request
+      .input("employeeID", sql.VarChar, employeeID)
+      .input("resetOTP", sql.VarChar, otp)
+      .input("resetExpiry", sql.DateTime, expiry)
+      .query(`
+        UPDATE [users]
+        SET [resetOTP] = @resetOTP, [resetExpiry] = @resetExpiry
+        WHERE [employeeID] = @employeeID
+      `);
+  } catch (err) {
+    console.error("Error in setResetOTP: ", err);
+    throw err;
+  }
+};
+
+
+const verifyResetExpiry = async (employeeID) => {
+  const request = pool.request();
+  const result = await request
+    .input("employeeID", sql.VarChar, employeeID)
+    .query(
+      "SELECT id, employeeID, resetOTP, resetExpiry FROM users WHERE employeeID = @employeeID"
+    );
+
+  return result.recordset[0];
+};
+
+
+const clearResetOTP = async (employeeID) => {
+  const request = pool.request();
+  await request 
+  .input("employeeID", sql.VarChar, employeeID)
+  .query("UPDATE users SET resetOTP = NULL, resetExpiry = NULL WHERE employeeID = @employeeID");
+}
+
 
 module.exports = {
   getUserByEmail,
@@ -91,4 +131,7 @@ module.exports = {
   updateUser,
   updateUserPassword,
   deleteUser,
+  setResetOTP,
+  verifyResetExpiry,
+  clearResetOTP
 };

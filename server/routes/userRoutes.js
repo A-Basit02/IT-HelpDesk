@@ -9,20 +9,28 @@ const {
   deleteUserController,
   getCurrentUserProfile,
   updateCurrentUserProfile, 
-  updateUserStatusController
+  updateUserStatusController,
+  requestPasswordReset,
+  verifyOtp,
+  resetPassword
 } = require('../controllers/userController');
 
-// Admin routes (require admin privileges)
+
+// Public routes (no authentication required) - MUST come before parameterized routes
+router.post('/forgotPassword', requestPasswordReset);
+router.post('/verifyOTP', verifyOtp);
+router.put('/resetPassword', resetPassword);
+
+// User profile routes (for any authenticated user)
+router.get('/profile/me', verifyToken, getCurrentUserProfile);
+router.put('/profile/me', verifyToken, updateCurrentUserProfile);
+
+// Admin routes (require admin privileges) - parameterized routes come last
 router.get('/all',  adminORsuperAdmin ,getAllUsersController);
 router.get('/:id', adminORsuperAdmin, getUserByIdController);
 router.put('/:id', adminAuth, updateUserController);
 router.delete('/:id', adminORsuperAdmin, deleteUserController);
 // SuperAdmin Route
 router.put('/:id/approval', superAdminAuth, updateUserStatusController);
-
-
-// User profile routes (for any authenticated user)
-router.get('/profile/me', verifyToken, getCurrentUserProfile);
-router.put('/profile/me', verifyToken, updateCurrentUserProfile);
 
 module.exports = router; 

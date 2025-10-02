@@ -5,7 +5,10 @@ const {
   updateUser, 
   updateUserPassword, 
   deleteUser,
-  getUserByEmployeeID 
+  getUserByEmployeeID, 
+  setResetOTP, 
+  verifyResetExpiry,
+  clearResetOTP
 } = require("../models/userModel");
 const { sendEmail } = require("../utils/emailService"); // ✅ Correct import
 
@@ -286,7 +289,103 @@ const updateUserStatusController = async (req, res) => {
   }
 };
 
+const requestPasswordReset = async (req, res) => {
+  try {
+    const { employeeID } = req.body;
+    
+    if (!employeeID) {
+      return res.status(400).json({ message: "Employee ID is required" });
+    }
+    
+    // Check if user exists
+    const user = await getUserByEmployeeID(employeeID);
+    if (!user) {
+      return res.status(400).json({ message: "User Not Found" });
+    }
+    
+    // Generate 6-digit OTP code
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Set expiry to 5 minutes from now
+    const expiry = new Date(Date.now() + 5 * 60 * 1000);
+    
+    // Save OTP to database
+    await setResetOTP(employeeID, otp, expiry);
+    
+    // Send email with OTP
+    await sendEmail(
+      user.email,
+      "Password Reset OTP",
+      `Hello ${user.name}, \n\n Your Password Reset OTP is \n \t\t ${otp} \n\n Don't share this OTP with anyone \n In case of any issue please reach out to our official email: ithelpdesk@mbl.com`
+    );
 
+    res.json({ message: "Check your mail for OTP" });
+  } catch (error) {
+    console.error("Error in requesting OTP:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+const verifyOtp = async (req, res) => {
+  try {
+    const { employeeID, otp } = req.body;
+    
+    if (!employeeID || !otp) {
+      return res
+        .status(400)
+        .json({ message: "Employee ID or OTP is missing" });
+    }
+
+    const user = await verifyResetExpiry(employeeID);
+    if (!user) {
+      return res.status(400).json({ message: "User Not Found" });
+    }
+
+    if (user.resetOTP !== otp) {
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
+
+    if (new Date(user.resetExpiry) < Date.now()) {
+      return res.status(400).json({ message: "OTP Expired" });
+    }
+
+    res.json({ message: "OTP Verified Successfully" });
+  } catch (error) {
+    console.error("Error in verifying OTP:", error);
+    res
+      .status(500)
+      .json({ message: "Server Error", error: error.message });
+  }
+};
+
+
+const resetPassword = async (req, res) => {
+  try {
+    const { employeeID, newPassword } = req.body;
+
+    if (!employeeID || !newPassword) {
+      return res.status(400).json({ message: "Employee ID and New Password is required" });
+    }
+    
+    const user = await verifyResetExpiry(employeeID);
+    if (!user) {
+      return res.status(400).json({ message: "User Not Found" });
+    }
+
+    if (new Date(user.resetExpiry) < Date.now()) {
+      return res.status(400).json({ message: "OTP Expired" });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await updateUserPassword(user.employeeID, hashedPassword);
+    await clearResetOTP(employeeID);
+
+    res.json({ message: "Password updated Successfully" });
+  } catch (error) {
+    console.error("Error in updating password:", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
 
 module.exports = {
   getAllUsersController,
@@ -295,5 +394,8 @@ module.exports = {
   deleteUserController,
   getCurrentUserProfile,
   updateCurrentUserProfile, 
-  updateUserStatusController
+  updateUserStatusController, 
+  requestPasswordReset,
+  verifyOtp,
+  resetPassword
 }; 
