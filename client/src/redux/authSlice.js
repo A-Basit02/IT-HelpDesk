@@ -14,7 +14,9 @@ export const login = createAsyncThunk(
       const response = await axiosInstance.post(`${API_URL}/login`, { employeeID, password });
 
       if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
+        sessionStorage.setItem("token", response.data.token);
+       
+        // localStorage.setItem("token", response.data.token);
       }
 
       return response.data;
@@ -34,7 +36,9 @@ export const registerUser = createAsyncThunk(
       });
 
       if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
+        sessionStorage.setItem("token", response.data.token);
+
+        // localStorage.setItem("token", response.data.token);
       }
 
       return response.data;
@@ -50,9 +54,9 @@ export const getLoggedInUser = createAsyncThunk(
   async (_, thunkAPI) => {
     try {
       const res = await axiosInstance.get("/auth/me"); // Token added automatically
-      // Update token in localStorage if returned
+      // Update token in sessionstorage if returned
       if (res.data.token) {
-        localStorage.setItem("token", res.data.token);
+        sessionStorage.setItem("token", res.data.token);
         // console.log ("token = ", res.data.token)
       }
       return res.data.user; // or res.data depending on backend
@@ -69,7 +73,7 @@ const authSlice = createSlice({
   name: "auth",
   initialState: {
     user: null,
-    token: localStorage.getItem("token") || null,
+    token: sessionStorage.getItem("token") || null,
     loading: false,
     error: null,
     message: null,
@@ -81,7 +85,7 @@ const authSlice = createSlice({
       state.token = null;
       state.loading = false;
       state.message = null;
-      localStorage.removeItem("token");
+      sessionStorage.removeItem("token");
     },
   },
   extraReducers: (builder) => {
@@ -126,15 +130,15 @@ const authSlice = createSlice({
         // console.log("getLoggedInUser fulfilled, payload:", action.payload);
         state.loading = false;
         state.user = action.payload;
-        // Update token in state from localStorage
-        state.token = localStorage.getItem("token");
+        // Update token in state from SessionStorage
+        state.token = sessionStorage.getItem("token");
         state.isInitialized = true;  
       })
       .addCase(getLoggedInUser.rejected, (state) => {
         state.loading = false;
         state.user = null;
         state.token = null;
-        localStorage.removeItem("token");
+        sessionStorage.removeItem("token");
         state.isInitialized = true; 
       });
   },

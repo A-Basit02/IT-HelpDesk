@@ -93,6 +93,9 @@ const Login = () => {
             Sign up
           </Button>
         </Box>
+        <Button component={Link} to="/forgotPassword" size="small" color="primary">
+            Forgot Password
+          </Button>
       </Box>
     </Container>
   );

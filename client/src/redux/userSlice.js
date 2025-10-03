@@ -1,9 +1,9 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import * as userApi from '../utils/userApi';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import * as userApi from "../utils/userApi";
 
 // Async thunks
 export const fetchAllUsers = createAsyncThunk(
-  'users/fetchAllUsers',
+  "users/fetchAllUsers",
   async (_, { rejectWithValue }) => {
     try {
       const response = await userApi.getAllUsers();
@@ -15,7 +15,7 @@ export const fetchAllUsers = createAsyncThunk(
 );
 
 export const fetchUserById = createAsyncThunk(
-  'users/fetchUserById',
+  "users/fetchUserById",
   async (userId, { rejectWithValue }) => {
     try {
       const response = await userApi.getUserById(userId);
@@ -27,7 +27,7 @@ export const fetchUserById = createAsyncThunk(
 );
 
 export const updateUserById = createAsyncThunk(
-  'users/updateUserById',
+  "users/updateUserById",
   async ({ userId, userData }, { rejectWithValue }) => {
     try {
       const response = await userApi.updateUser(userId, userData);
@@ -39,7 +39,7 @@ export const updateUserById = createAsyncThunk(
 );
 
 export const deleteUserById = createAsyncThunk(
-  'users/deleteUserById',
+  "users/deleteUserById",
   async (userId, { rejectWithValue }) => {
     try {
       const response = await userApi.deleteUser(userId);
@@ -51,7 +51,7 @@ export const deleteUserById = createAsyncThunk(
 );
 
 export const createNewUser = createAsyncThunk(
-  'users/createNewUser',
+  "users/createNewUser",
   async (userData, { rejectWithValue }) => {
     try {
       const response = await userApi.createUser(userData);
@@ -63,7 +63,7 @@ export const createNewUser = createAsyncThunk(
 );
 
 export const fetchCurrentUserProfile = createAsyncThunk(
-  'users/fetchCurrentUserProfile',
+  "users/fetchCurrentUserProfile",
   async (_, { rejectWithValue }) => {
     try {
       const response = await userApi.getCurrentUserProfile();
@@ -75,7 +75,7 @@ export const fetchCurrentUserProfile = createAsyncThunk(
 );
 
 export const updateCurrentUserProfile = createAsyncThunk(
-  'users/updateCurrentUserProfile',
+  "users/updateCurrentUserProfile",
   async (profileData, { rejectWithValue }) => {
     try {
       const response = await userApi.updateCurrentUserProfile(profileData);
@@ -87,7 +87,7 @@ export const updateCurrentUserProfile = createAsyncThunk(
 );
 
 export const updateUserStatusById = createAsyncThunk(
-  'users/updateUserStatusById',
+  "users/updateUserStatusById",
   async ({ userId, userData }, { rejectWithValue }) => {
     try {
       const response = await userApi.updateUserStatus(userId, userData);
@@ -98,6 +98,48 @@ export const updateUserStatusById = createAsyncThunk(
   }
 );
 
+// Request password reset
+export const requestPasswordResetThunk = createAsyncThunk(
+  "users/requestPasswordReset",
+  async (employeeID, { rejectWithValue }) => {
+    try {
+      const response = await userApi.requestPasswordReset(employeeID);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to send OTP");
+    }
+  }
+);
+
+// Verify OTP
+export const verifyOtpThunk = createAsyncThunk(
+  "users/verifyOtp",
+  async ({ employeeID, otp }, { rejectWithValue }) => {
+    try {
+      const response = await userApi.verifyOtp({ employeeID, otp });
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Invalid OTP");
+    }
+  }
+);
+
+// Reset password
+
+export const resetPasswordThunk = createAsyncThunk(
+  "users/resetPassword",
+  async ({ employeeID,  newPassword }, { rejectWithValue }) => {
+    try {
+      const response = await userApi.resetPassword({ employeeID,  newPassword });
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Reset password failed");
+    }
+  }
+);
+
+
+
 const initialState = {
   users: [],
   currentUserProfile: null,
@@ -105,18 +147,18 @@ const initialState = {
   loading: false,
   error: null,
   success: null,
-  searchTerm: '',
-  filterRole: 'all',
+  searchTerm: "",
+  filterRole: "all",
   pagination: {
     currentPage: 1,
     totalPages: 1,
     totalUsers: 0,
-    limit: 10
-  }
+    limit: 10,
+  },
 };
 
 const userSlice = createSlice({
-  name: 'users',
+  name: "users",
   initialState,
   reducers: {
     clearError: (state) => {
@@ -143,9 +185,9 @@ const userSlice = createSlice({
       state.loading = false;
       state.error = null;
       state.success = null;
-      state.searchTerm = '';
-      state.filterRole = 'all';
-    }
+      state.searchTerm = "";
+      state.filterRole = "all";
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -161,9 +203,9 @@ const userSlice = createSlice({
       })
       .addCase(fetchAllUsers.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to fetch users';
+        state.error = action.payload?.message || "Failed to fetch users";
       })
-      
+
       // Fetch user by ID
       .addCase(fetchUserById.pending, (state) => {
         state.loading = true;
@@ -176,9 +218,9 @@ const userSlice = createSlice({
       })
       .addCase(fetchUserById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to fetch user';
+        state.error = action.payload?.message || "Failed to fetch user";
       })
-      
+
       // Update user
       .addCase(updateUserById.pending, (state) => {
         state.loading = true;
@@ -187,16 +229,16 @@ const userSlice = createSlice({
       .addCase(updateUserById.fulfilled, (state, action) => {
         state.loading = false;
         const { userId, userData } = action.payload;
-        state.users = state.users.map(user => 
+        state.users = state.users.map((user) =>
           user.id === userId ? { ...user, ...userData } : user
         );
         state.success = action.payload.response.message;
       })
       .addCase(updateUserById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to update user';
+        state.error = action.payload?.message || "Failed to update user";
       })
-      
+
       // Delete user
       .addCase(deleteUserById.pending, (state) => {
         state.loading = true;
@@ -205,14 +247,14 @@ const userSlice = createSlice({
       .addCase(deleteUserById.fulfilled, (state, action) => {
         state.loading = false;
         const { userId } = action.payload;
-        state.users = state.users.filter(user => user.id !== userId);
+        state.users = state.users.filter((user) => user.id !== userId);
         state.success = action.payload.response.message;
       })
       .addCase(deleteUserById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to delete user';
+        state.error = action.payload?.message || "Failed to delete user";
       })
-      
+
       // Create new user
       .addCase(createNewUser.pending, (state) => {
         state.loading = true;
@@ -224,9 +266,9 @@ const userSlice = createSlice({
       })
       .addCase(createNewUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to create user';
+        state.error = action.payload?.message || "Failed to create user";
       })
-      
+
       // Fetch current user profile
       .addCase(fetchCurrentUserProfile.pending, (state) => {
         state.loading = true;
@@ -239,9 +281,9 @@ const userSlice = createSlice({
       })
       .addCase(fetchCurrentUserProfile.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to fetch profile';
+        state.error = action.payload?.message || "Failed to fetch profile";
       })
-      
+
       // Update current user profile
       .addCase(updateCurrentUserProfile.pending, (state) => {
         state.loading = true;
@@ -251,16 +293,19 @@ const userSlice = createSlice({
         state.loading = false;
         const { profileData } = action.payload;
         if (state.currentUserProfile) {
-          state.currentUserProfile = { ...state.currentUserProfile, ...profileData };
+          state.currentUserProfile = {
+            ...state.currentUserProfile,
+            ...profileData,
+          };
         }
         state.success = action.payload.response.message;
       })
       .addCase(updateCurrentUserProfile.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to update profile';
+        state.error = action.payload?.message || "Failed to update profile";
       })
 
-       // Update user Status
+      // Update user Status
       .addCase(updateUserStatusById.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -268,16 +313,59 @@ const userSlice = createSlice({
       .addCase(updateUserStatusById.fulfilled, (state, action) => {
         state.loading = false;
         const { userId, userData } = action.payload;
-        state.users = state.users.map(user => 
+        state.users = state.users.map((user) =>
           user.id === userId ? { ...user, ...userData } : user
         );
         state.success = action.payload.response.message;
       })
       .addCase(updateUserStatusById.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload?.message || 'Failed to update user';
+        state.error = action.payload?.message || "Failed to update user";
+      })
+
+      // Request Password Reset
+      .addCase(requestPasswordResetThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(requestPasswordResetThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = action.payload.message;
+      })
+      .addCase(requestPasswordResetThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error =
+          action.payload?.message || "Failed to request password reset";
+      })
+
+      // Verify OTP
+      .addCase(verifyOtpThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(verifyOtpThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = action.payload.message;
+      })
+      .addCase(verifyOtpThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Invalid or expired OTP";
+      })
+
+      // Reset Password
+      .addCase(resetPasswordThunk.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(resetPasswordThunk.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = action.payload.message;
+      })
+      .addCase(resetPasswordThunk.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload?.message || "Failed to reset password";
       });
-  }
+  },
 });
 
 export const {
@@ -287,7 +375,7 @@ export const {
   setFilterRole,
   setSelectedUser,
   clearSelectedUser,
-  resetUserState
+  resetUserState,
 } = userSlice.actions;
 
-export default userSlice.reducer; 
+export default userSlice.reducer;

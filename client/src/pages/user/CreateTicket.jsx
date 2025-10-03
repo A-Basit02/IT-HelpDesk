@@ -3,32 +3,44 @@ import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "react-toastify";
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
-import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ConfirmationDialog from '../../components/ConfirmationDialog';
+import Container from "@mui/material/Container";
+import Paper from "@mui/material/Paper";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Typography from "@mui/material/Typography";
+import IconButton from "@mui/material/IconButton";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ConfirmationDialog from "../../components/ConfirmationDialog";
 
 const CreateTicket = () => {
   const user = useSelector((state) => state.auth.user);
   const navigate = useNavigate();
 
-  const [problemDateOccurred, setProblemDateOccurred] = useState("");
-  const [problemStatement, setProblemStatement] = useState("");
+  const [problemDateOccurred, setProblemDateOccurred] = useState(
+    sessionStorage.getItem("ticket_problemDate") || ""
+  );
+  const [problemStatement, setProblemStatement] = useState(
+    sessionStorage.getItem("ticket_problemStatement") || ""
+  );
   const [loading, setLoading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showUnsavedDialog, setShowUnsavedDialog] = useState(false);
 
   const hasUnsavedChanges = problemDateOccurred || problemStatement;
 
+  React.useEffect(() => {
+    sessionStorage.setItem("ticket_problemDate", problemDateOccurred);
+  }, [problemDateOccurred]);
+
+  React.useEffect(() => {
+    sessionStorage.setItem("ticket_problemStatement", problemStatement);
+  }, [problemStatement]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (isSubmitting) return; // Prevent multiple submissions
-    
+
     if (!problemDateOccurred) {
       toast.error("Please select the problem occur date");
       return;
@@ -37,10 +49,10 @@ const CreateTicket = () => {
       toast.error("Please enter the problem statement");
       return;
     }
-    
+
     setIsSubmitting(true);
     setLoading(true);
-    
+
     try {
       const response = await axiosInstance.post("/tickets/create", {
         status: "Open",
@@ -48,6 +60,10 @@ const CreateTicket = () => {
         problemStatement,
       });
       toast.success("Ticket created successfully");
+      //removes session
+      sessionStorage.removeItem("ticket_problemDate");
+      sessionStorage.removeItem("ticket_problemStatement");
+
       const ticketNumber = response.data.ticketNumber;
       navigate(`/user/tickets/${ticketNumber}`);
     } catch (error) {
@@ -63,11 +79,11 @@ const CreateTicket = () => {
     const handleBeforeUnload = (e) => {
       if (hasUnsavedChanges) {
         e.preventDefault();
-        e.returnValue = '';
+        e.returnValue = "";
       }
     };
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [hasUnsavedChanges]);
 
   const handleNavigateAway = () => {
@@ -84,18 +100,23 @@ const CreateTicket = () => {
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
         <Box display="flex" alignItems="center" mb={3}>
-          <IconButton 
-            onClick={handleNavigateAway} 
+          <IconButton
+            onClick={handleNavigateAway}
             sx={{ mr: 2 }}
             aria-label="back"
           >
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
             Create Ticket
           </Typography>
         </Box>
-        <Box component="form" onSubmit={handleSubmit} noValidate autoComplete="off">
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          noValidate
+          autoComplete="off"
+        >
           <Box mb={3}>
             <TextField
               label="Creator Name"
@@ -163,7 +184,11 @@ const CreateTicket = () => {
               sx={{ py: 1.5, fontSize: 18 }}
               disabled={loading || isSubmitting}
             >
-              {loading ? "Creating..." : isSubmitting ? "Submitting..." : "Submit"}
+              {loading
+                ? "Creating..."
+                : isSubmitting
+                  ? "Submitting..."
+                  : "Submit"}
             </Button>
             <Button
               variant="outlined"

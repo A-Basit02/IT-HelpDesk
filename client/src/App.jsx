@@ -9,6 +9,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import CreateTicket from "./pages/user/CreateTicket";
 import AdminProfile from "./pages/admin/Profile";
 import UserProfile from "./pages/user/Profile";
+import UploadTickets from "./pages/admin/UploadTickets";
 import PrivateRoute from "./routes/PrivateRoute";
 import AdminRoute from "./routes/AdminRoute";
 import UserRoute from "./routes/UserRoute";
@@ -20,11 +21,13 @@ import { getLoggedInUser } from "./redux/authSlice";
 import { Navigate } from "react-router-dom";
 import DashboardLayout from "./components/DashboardLayout";
 import Loader from "./components/user/loader";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+import VerifyOTP from "./pages/auth/VerifyOTP";
 // import Analytics from "./pages/admin/Analytics";
 
 function App() {
   const dispatch = useDispatch();
-  // const loading = useSelector((state) => state.auth.loading);
   const [ loading, setLoading] = useState(false);
   // const location = setlocation();
 
@@ -57,6 +60,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
+        <Route path="/forgotPassword" element={<ForgotPassword />} />
+        <Route path="/verifyOTP" element={<VerifyOTP />} />
+        <Route path="/resetPassword" element={<ResetPassword />} />
         <Route
           path="/"
           element={<Navigate to="/login" />} />
@@ -78,6 +84,8 @@ function App() {
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/tickets/:ticketNumber" element={<AdminTicketDetails />} />
+            <Route path="/admin/upload-tickets" element={<UploadTickets />} />
+
           </Route>
         </Route>
       </Routes>
