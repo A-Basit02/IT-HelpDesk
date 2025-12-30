@@ -103,13 +103,11 @@ export const verifyOtp = async ({ employeeID, otp }) => {
 };
 
 // Reset Password
-
-export const resetPassword = async ({ employeeID,  newPassword }) => {
-  console.log(employeeID, newPassword)
+export const resetPassword = async ({ employeeID, newPassword }) => {
+  console.log(employeeID, newPassword);
   const res = await axiosInstance.put("/users/resetPassword", {
     employeeID,
     newPassword,
   });
   return res.data;
 };
-

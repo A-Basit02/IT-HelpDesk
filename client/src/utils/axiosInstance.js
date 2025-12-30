@@ -10,7 +10,7 @@ axiosInstance.interceptors.request.use(
   (config) => {
     const publicRoutes = [
       "/users/resetPassword",
-      "/users/forgotPassword", 
+      "/users/forgotPassword",
       "/users/verifyOTP",
     ];
 
@@ -40,17 +40,19 @@ axiosInstance.interceptors.response.use(
   (response) => {
     const publicRoutes = [
       "/users/resetPassword",
-      "/users/forgotPassword", 
+      "/users/forgotPassword",
       "/users/verifyOTP",
     ];
-    
-    const isPublicRoute = publicRoutes.some((route) => response.config.url.includes(route));
-    
+
+    const isPublicRoute = publicRoutes.some((route) =>
+      response.config.url.includes(route)
+    );
+
     // Skip decryption for public routes
     if (isPublicRoute) {
       return response;
     }
-    
+
     // Decrypt response for protected routes
     if (response.data && response.data.payload) {
       const decrypted = decryptData(response.data.payload);

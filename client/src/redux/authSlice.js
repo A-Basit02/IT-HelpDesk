@@ -1,38 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axiosInstance from "../utils/axiosInstance";
 
-
 // Base API URL
 const API_URL = import.meta.env.VITE_API_BASE_URL + "/api/auth";
-
 
 // Login
 export const login = createAsyncThunk(
   "auth/loginUser",
   async ({ employeeID, password }, thunkAPI) => {
     try {
-      const response = await axiosInstance.post(`${API_URL}/login`, { employeeID, password });
-
-      if (response.data.token) {
-        sessionStorage.setItem("token", response.data.token);
-       
-        // localStorage.setItem("token", response.data.token);
-      }
-
-      return response.data;
-    } catch (error) {
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Login failed");
-    }
-  }
-);
-
-// Register
-export const registerUser = createAsyncThunk(
-  "auth/registerUser",
-  async ({ name, employeeID, email, password, department, branch, role }, thunkAPI) => {
-    try {
-      const response = await axiosInstance.post(`${API_URL}/register`, {
-        name, employeeID, email, password, department, branch, role
+      const response = await axiosInstance.post(`${API_URL}/login`, {
+        employeeID,
+        password,
       });
 
       if (response.data.token) {
@@ -43,7 +22,42 @@ export const registerUser = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(error.response?.data?.message || "Signup failed");
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Login failed"
+      );
+    }
+  }
+);
+
+// Register
+export const registerUser = createAsyncThunk(
+  "auth/registerUser",
+  async (
+    { name, employeeID, email, password, department, branch, role },
+    thunkAPI
+  ) => {
+    try {
+      const response = await axiosInstance.post(`${API_URL}/register`, {
+        name,
+        employeeID,
+        email,
+        password,
+        department,
+        branch,
+        role,
+      });
+
+      if (response.data.token) {
+        sessionStorage.setItem("token", response.data.token);
+
+        // localStorage.setItem("token", response.data.token);
+      }
+
+      return response.data;
+    } catch (error) {
+      return thunkAPI.rejectWithValue(
+        error.response?.data?.message || "Signup failed"
+      );
     }
   }
 );
@@ -68,7 +82,6 @@ export const getLoggedInUser = createAsyncThunk(
   }
 );
 
-
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -77,7 +90,7 @@ const authSlice = createSlice({
     loading: false,
     error: null,
     message: null,
-    isInitialized: false, 
+    isInitialized: false,
   },
   reducers: {
     logout: (state) => {
@@ -132,14 +145,14 @@ const authSlice = createSlice({
         state.user = action.payload;
         // Update token in state from SessionStorage
         state.token = sessionStorage.getItem("token");
-        state.isInitialized = true;  
+        state.isInitialized = true;
       })
       .addCase(getLoggedInUser.rejected, (state) => {
         state.loading = false;
         state.user = null;
         state.token = null;
         sessionStorage.removeItem("token");
-        state.isInitialized = true; 
+        state.isInitialized = true;
       });
   },
 });

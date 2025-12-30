@@ -101,7 +101,6 @@ const setResetOTP = async (employeeID, otp, expiry) => {
   }
 };
 
-
 const verifyResetExpiry = async (employeeID) => {
   const request = pool.request();
   const result = await request
@@ -112,7 +111,6 @@ const verifyResetExpiry = async (employeeID) => {
 
   return result.recordset[0];
 };
-
 
 const clearResetOTP = async (employeeID) => {
   const request = pool.request();

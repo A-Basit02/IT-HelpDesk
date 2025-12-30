@@ -1,4 +1,4 @@
-import { useEffect , useState} from "react";
+import { useEffect, useState } from "react";
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Login from "./pages/auth/Login";
@@ -28,7 +28,7 @@ import VerifyOTP from "./pages/auth/VerifyOTP";
 
 function App() {
   const dispatch = useDispatch();
-  const [ loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false);
   // const location = setlocation();
 
   useEffect(() => {
@@ -63,13 +63,10 @@ function App() {
         <Route path="/forgotPassword" element={<ForgotPassword />} />
         <Route path="/verifyOTP" element={<VerifyOTP />} />
         <Route path="/resetPassword" element={<ResetPassword />} />
-        <Route
-          path="/"
-          element={<Navigate to="/login" />} />
+        <Route path="/" element={<Navigate to="/login" />} />
         {/* User Routes */}
         <Route element={<UserRoute />}>
-          <Route
-            element={<DashboardLayout />}>
+          <Route element={<DashboardLayout />}>
             <Route path="/user/dashboard" element={<UserDashboard />} />
             <Route path="/user/create-ticket" element={<CreateTicket />} />
             <Route path="/user/tickets/:ticketNumber" element={<TicketDetails />} />
@@ -78,14 +75,12 @@ function App() {
         </Route>
         {/* Admin Routes */}
         <Route element={<AdminRoute />}>
-          <Route
-            element={<DashboardLayout />}>
+          <Route element={<DashboardLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<UserManagement />} />
             <Route path="/admin/profile" element={<AdminProfile />} />
             <Route path="/admin/tickets/:ticketNumber" element={<AdminTicketDetails />} />
             <Route path="/admin/upload-tickets" element={<UploadTickets />} />
-
           </Route>
         </Route>
       </Routes>

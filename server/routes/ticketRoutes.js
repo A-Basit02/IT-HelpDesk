@@ -15,10 +15,10 @@ const {
 } = require('../controllers/ticketController');
 const upload = require("../middleware/upload")
 const verifyToken = require('../middleware/verifyToken');
-
+const uploadAttachment = require('../middleware/uploadAttachment');
 
 // Routes
-router.post('/create', verifyToken, createTicket);
+router.post('/create', verifyToken,  uploadAttachment.single("attachment"), createTicket);
 router.get('/all', verifyToken, getAllTickets);
 router.get("/analytics/all-tickets", getAllTicketsForAnalytics);
 router.get('/view/:ticketNumber', verifyToken, getTicketById);

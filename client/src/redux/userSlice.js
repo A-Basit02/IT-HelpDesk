@@ -106,7 +106,9 @@ export const requestPasswordResetThunk = createAsyncThunk(
       const response = await userApi.requestPasswordReset(employeeID);
       return response;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Failed to send OTP");
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to send OTP"
+      );
     }
   }
 );
@@ -125,20 +127,19 @@ export const verifyOtpThunk = createAsyncThunk(
 );
 
 // Reset password
-
 export const resetPasswordThunk = createAsyncThunk(
   "users/resetPassword",
-  async ({ employeeID,  newPassword }, { rejectWithValue }) => {
+  async ({ employeeID, newPassword }, { rejectWithValue }) => {
     try {
-      const response = await userApi.resetPassword({ employeeID,  newPassword });
+      const response = await userApi.resetPassword({ employeeID, newPassword });
       return response;
     } catch (error) {
-      return rejectWithValue(error.response?.data?.message || "Reset password failed");
+      return rejectWithValue(
+        error.response?.data?.message || "Reset password failed"
+      );
     }
   }
 );
-
-
 
 const initialState = {
   users: [],

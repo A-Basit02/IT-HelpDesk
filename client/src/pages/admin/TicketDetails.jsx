@@ -3,16 +3,17 @@ import { useParams, useNavigate } from "react-router-dom";
 import axiosInstance from "../../utils/axiosInstance";
 import { toast } from "react-toastify";
 import Button from "@mui/material/Button";
-import Container from '@mui/material/Container';
-import Paper from '@mui/material/Paper';
-import Grid from '@mui/material/Grid';
-import TextField from '@mui/material/TextField';
-import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
-import MenuItem from '@mui/material/MenuItem';
-import IconButton from '@mui/material/IconButton';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ConfirmationDialog from '../../components/ConfirmationDialog';
+import Container from "@mui/material/Container";
+import Paper from "@mui/material/Paper";
+import Grid from "@mui/material/Grid";
+import TextField from "@mui/material/TextField";
+import Box from "@mui/material/Box";
+import Typography from "@mui/material/Typography";
+import MenuItem from "@mui/material/MenuItem";
+import IconButton from "@mui/material/IconButton";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ConfirmationDialog from "../../components/ConfirmationDialog";
+import FullscreenImage from "../../components/FullscreenImage.jsx";
 
 const AdminTicketDetails = () => {
   const { ticketNumber } = useParams();
@@ -27,6 +28,7 @@ const AdminTicketDetails = () => {
     status: "",
     problem_dateOccurred: "",
   });
+  const [files, setFiles] = useState([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
 
@@ -34,20 +36,26 @@ const AdminTicketDetails = () => {
     const fetchTicket = async () => {
       setLoading(true);
       try {
-        const response = await axiosInstance.get(`/tickets/view/${ticketNumber}`);
+        const response = await axiosInstance.get(
+          `/tickets/view/${ticketNumber}`
+        );
         setTicket(response.data);
         setFormData({
           problemStatement: response.data.problemStatement || "",
           status: response.data.status || "",
           problem_dateOccurred: response.data.problem_dateOccurred
-            ? new Date(response.data.problem_dateOccurred).toISOString().split("T")[0]
+            ? new Date(response.data.problem_dateOccurred)
+                .toISOString()
+                .split("T")[0]
             : "",
         });
+        setTicket(response.data);
         setError(null);
       } catch (err) {
         setError(err.response?.data?.message || "Failed to fetch ticket");
       } finally {
         setLoading(false);
+
       }
     };
     fetchTicket();
@@ -55,7 +63,7 @@ const AdminTicketDetails = () => {
 
   const handleDelete = async () => {
     try {
-      await axiosInstance.delete(`/tickets/delete/${ticket.ticketNumber}`);
+      await axiosInstance.delete(`/tickets/delete/${ticket.ticketNumber}`);  
       toast.success("Ticket deleted successfully");
       navigate("/admin/dashboard");
     } catch (err) {
@@ -77,7 +85,7 @@ const AdminTicketDetails = () => {
 
   const handleSave = async () => {
     if (isSubmitting) return;
-    
+
     setIsSubmitting(true);
     try {
       await axiosInstance.put(`/tickets/edit/${ticket.ticketNumber}`, {
@@ -100,41 +108,45 @@ const AdminTicketDetails = () => {
     }
   };
 
-  if (loading) return (
-    <Container maxWidth="md" sx={{ mt: 4, textAlign: "center" }}>
-      <Typography variant="h6">Loading ticket details...</Typography>
-    </Container>
-  );
-  
-  if (error) return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Typography variant="h6" color="error">{error}</Typography>
-    </Container>
-  );
-  
-  if (!ticket) return (
-    <Container maxWidth="md" sx={{ mt: 4 }}>
-      <Typography variant="h6">No ticket found.</Typography>
-    </Container>
-  );
+  if (loading)
+    return (
+      <Container maxWidth="md" sx={{ mt: 4, textAlign: "center" }}>
+        <Typography variant="h6">Loading ticket details...</Typography>
+      </Container>
+    );
+
+  if (error)
+    return (
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Typography variant="h6" color="error">
+          {error}
+        </Typography>
+      </Container>
+    );
+
+  if (!ticket)
+    return (
+      <Container maxWidth="md" sx={{ mt: 4 }}>
+        <Typography variant="h6">No ticket found.</Typography>
+      </Container>
+    );
 
   return (
     <Container maxWidth="md" sx={{ mt: 4 }}>
       <Paper elevation={3} sx={{ p: 4, borderRadius: 3 }}>
-      
         <Box display="flex" alignItems="center" mb={3}>
-          <IconButton 
-            onClick={() => navigate(-1)} 
+          <IconButton
+            onClick={() => navigate(-1)}
             sx={{ mr: 2 }}
             aria-label="back"
           >
             <ArrowBackIcon />
           </IconButton>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold' }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: "bold" }}>
             Ticket Details
           </Typography>
         </Box>
-        
+
         <Box component="form" noValidate autoComplete="off">
           <Box mb={3}>
             <TextField
@@ -146,7 +158,6 @@ const AdminTicketDetails = () => {
               margin="normal"
             />
           </Box>
-          
           <Box mb={3}>
             <TextField
               label="Created By"
@@ -157,7 +168,6 @@ const AdminTicketDetails = () => {
               margin="normal"
             />
           </Box>
-          
           <Box mb={3}>
             <TextField
               label="Employee ID"
@@ -168,18 +178,20 @@ const AdminTicketDetails = () => {
               margin="normal"
             />
           </Box>
-          
           <Box mb={3}>
             <TextField
               label="Creation Date"
-              value={ticket.createdAt ? new Date(ticket.createdAt).toLocaleDateString() : "N/A"}
+              value={
+                ticket.createdAt
+                  ? new Date(ticket.createdAt).toLocaleDateString()
+                  : "N/A"
+              }
               InputProps={{ readOnly: true }}
               variant="outlined"
               fullWidth
               margin="normal"
             />
           </Box>
-          
           <Box mb={3}>
             {editMode ? (
               <TextField
@@ -196,7 +208,11 @@ const AdminTicketDetails = () => {
             ) : (
               <TextField
                 label="Problem Occur Date"
-                value={ticket.problem_dateOccurred ? new Date(ticket.problem_dateOccurred).toLocaleDateString() : "N/A"}
+                value={
+                  ticket.problem_dateOccurred
+                    ? new Date(ticket.problem_dateOccurred).toLocaleDateString()
+                    : "N/A"
+                }
                 InputProps={{ readOnly: true }}
                 variant="outlined"
                 fullWidth
@@ -204,7 +220,6 @@ const AdminTicketDetails = () => {
               />
             )}
           </Box>
-          
           <Box mb={3}>
             {editMode ? (
               <TextField
@@ -233,7 +248,6 @@ const AdminTicketDetails = () => {
               />
             )}
           </Box>
-          
           <Box mb={3}>
             {editMode ? (
               <TextField
@@ -260,6 +274,37 @@ const AdminTicketDetails = () => {
               />
             )}
           </Box>
+
+          
+            <Box
+              mb={3}
+              sx={{
+                maxWidth: "100%",
+                overflow: "hidden",
+                borderRadius: 2,
+                border: "1px solid #ddd",
+                p: 1,
+                backgroundColor: "#fafafa",
+                textAlign: "center",
+              }}
+            >
+              {ticket.attachmentPath &&
+              ticket.attachmentPath.match(/\.(jpg|jpeg|png)$/i) ? (
+                <FullscreenImage
+                  src={`http://localhost:5000/${ticket.attachmentPath}`}
+                  thumbnail={true} // ensures compressed/fitted view
+                />
+              ) : (
+                <a
+                  href={`http://localhost:5000/${ticket.attachmentPath}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline"
+                >
+                  View Attachment
+                </a>
+              )}
+            </Box>
           
           <Box mt={4} display="flex" gap={2}>
             {editMode ? (
@@ -309,7 +354,7 @@ const AdminTicketDetails = () => {
             )}
           </Box>
         </Box>
-        
+
         <ConfirmationDialog
           open={deleteDialogOpen}
           title="Delete Ticket"

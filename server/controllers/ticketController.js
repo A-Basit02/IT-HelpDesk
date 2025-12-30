@@ -17,12 +17,90 @@ const {
   getOldTicketStatus 
 } = require("../utils/emailHelpers");
 
+// const createTicket = async (req, res) => {
+//   try {
+//     await poolConnect;
+
+//     const employeeID = req.user.employeeID;
+//     const { status, problem_dateOccurred, problemStatement } = req.decryptedBody;
+
+//     const nameResult = await pool
+//       .request()
+//       .input("employeeID", sql.VarChar, employeeID)
+//       .query("SELECT name FROM Users WHERE employeeID = @employeeID");
+
+//     if (nameResult.recordset.length === 0) {
+//       return res.sendEncrypted({ message: "User not found" });
+//     }
+
+//     const name = nameResult.recordset[0].name;
+
+//     // Generate ticket number
+//     const seqResult = await pool
+//       .request()
+//       .query(
+//         `INSERT INTO TicketSequence DEFAULT VALUES; SELECT SCOPE_IDENTITY() AS ticketId`
+//       );
+
+//     const ticketId = seqResult.recordset[0].ticketId;
+//     const ticketNumber = `TKT-${String(ticketId).padStart(4, "0")}`;
+
+//     // Insert into Tickets
+//     await pool
+//       .request()
+//       .input("name", sql.VarChar, name)
+//       .input("status", sql.VarChar, status)
+//       .input("problem_dateOccurred", sql.DateTime, problem_dateOccurred)
+//       .input("problemStatement", sql.VarChar, problemStatement)
+//       .input("createdAt", sql.DateTime, new Date())
+//       .input("ticketNumber", sql.VarChar, ticketNumber)
+//       .input("employeeID", sql.VarChar, employeeID)
+//       .query(`INSERT INTO Tickets (name, status, problem_dateOccurred, problemStatement, createdAt, ticketNumber, employeeID)
+//               VALUES (@name, @status, @problem_dateOccurred, @problemStatement, @createdAt, @ticketNumber, @employeeID)`);
+
+//     // Send email notification to all admins
+//     try {
+//       const adminEmails = await getAdminEmails();
+//       const userData = await getUserDetailsByEmployeeID(employeeID);
+      
+//       if (adminEmails.length > 0 && userData) {
+//         const ticketData = {
+//           ticketNumber,
+//           status,
+//           problem_dateOccurred,
+//           problemStatement,
+//         };
+
+//         const htmlMessage = newTicketEmailTemplate(ticketData, userData);
+//         const subject = `New IT Support Ticket: ${ticketNumber}`;
+
+//         // Send email to all admins
+//         for (const adminEmail of adminEmails) {
+//           try {
+//             await sendEmail(adminEmail, subject, htmlMessage);
+//           } catch (emailError) {
+//             console.error(`Failed to send email to admin ${adminEmail}:`, emailError);
+//           }
+//         }
+//       }
+//     } catch (emailError) {
+//       console.error("Error sending email notifications:", emailError);
+//       // Don't fail the ticket creation if email fails
+//     }
+
+//     res.sendEncrypted({ message: "Ticket created successfully", ticketNumber });
+//   } catch (err) {
+//     console.error("Create Ticket Error:", err);
+//     res.sendEncrypted({ message: "Server error", error: err.message });
+//   }
+// };
+
 const createTicket = async (req, res) => {
   try {
     await poolConnect;
 
     const employeeID = req.user.employeeID;
-    const { status, problem_dateOccurred, problemStatement } = req.decryptedBody;
+    const { status, problem_dateOccurred, problemStatement } = req.body;
 
     const nameResult = await pool
       .request()
@@ -38,12 +116,13 @@ const createTicket = async (req, res) => {
     // Generate ticket number
     const seqResult = await pool
       .request()
-      .query(
-        `INSERT INTO TicketSequence DEFAULT VALUES; SELECT SCOPE_IDENTITY() AS ticketId`
-      );
+      .query(`INSERT INTO TicketSequence DEFAULT VALUES; SELECT SCOPE_IDENTITY() AS ticketId`);
 
     const ticketId = seqResult.recordset[0].ticketId;
     const ticketNumber = `TKT-${String(ticketId).padStart(4, "0")}`;
+
+    // ✅ Handle attachment if provided
+    const attachmentPath = req.file ? `uploads/tickets/${req.file.filename}` : null;
 
     // Insert into Tickets
     await pool
@@ -55,8 +134,17 @@ const createTicket = async (req, res) => {
       .input("createdAt", sql.DateTime, new Date())
       .input("ticketNumber", sql.VarChar, ticketNumber)
       .input("employeeID", sql.VarChar, employeeID)
-      .query(`INSERT INTO Tickets (name, status, problem_dateOccurred, problemStatement, createdAt, ticketNumber, employeeID)
-              VALUES (@name, @status, @problem_dateOccurred, @problemStatement, @createdAt, @ticketNumber, @employeeID)`);
+      .input("attachmentPath", sql.VarChar, attachmentPath)
+      .query(`
+        INSERT INTO Tickets (
+          name, status, problem_dateOccurred, problemStatement,
+          createdAt, ticketNumber, employeeID, attachmentPath
+        )
+        VALUES (
+          @name, @status, @problem_dateOccurred, @problemStatement,
+          @createdAt, @ticketNumber, @employeeID, @attachmentPath
+        )
+      `);
 
     // Send email notification to all admins
     try {
@@ -74,7 +162,6 @@ const createTicket = async (req, res) => {
         const htmlMessage = newTicketEmailTemplate(ticketData, userData);
         const subject = `New IT Support Ticket: ${ticketNumber}`;
 
-        // Send email to all admins
         for (const adminEmail of adminEmails) {
           try {
             await sendEmail(adminEmail, subject, htmlMessage);
@@ -85,7 +172,6 @@ const createTicket = async (req, res) => {
       }
     } catch (emailError) {
       console.error("Error sending email notifications:", emailError);
-      // Don't fail the ticket creation if email fails
     }
 
     res.sendEncrypted({ message: "Ticket created successfully", ticketNumber });
@@ -94,6 +180,7 @@ const createTicket = async (req, res) => {
     res.sendEncrypted({ message: "Server error", error: err.message });
   }
 };
+
 
 const getAllTickets = async (req, res) => {
   try {

@@ -358,7 +358,6 @@ const verifyOtp = async (req, res) => {
   }
 };
 
-
 const resetPassword = async (req, res) => {
   try {
     const { employeeID, newPassword } = req.body;
