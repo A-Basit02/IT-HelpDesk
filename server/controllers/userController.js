@@ -320,6 +320,7 @@ const requestPasswordReset = async (req, res) => {
     );
 
     res.json({ message: "Check your mail for OTP" });
+    console.log("otp", otp);
   } catch (error) {
     console.error("Error in requesting OTP:", error);
     res.status(500).json({ message: "Server Error", error: error.message });
