@@ -16,6 +16,9 @@
 13. [Security Best Practices](#security-best-practices)
 14. [Key Features](#key-features)
 15. [Learning Outcomes](#learning-outcomes)
+16. [Roles, Approval & Password Reset](#roles-approval--password-reset)
+17. [API Reference](#api-reference)
+18. [Ticket Attachments & Excel Import/Export](#ticket-attachments--excel-importexport)
 
 ---
 
@@ -24,13 +27,16 @@
 A comprehensive IT Help Desk system with role-based access, ticket management, automated notifications, and scalable architecture designed for enterprise-level organizations.
 
 ### Core Features
-- **User Authentication & Authorization**
-- **Ticket Management System**
+- **User Authentication & Authorization** (JWT, bcrypt, AES payload encryption)
+- **Role-based Access** (`user`, `admin`, `super_admin`)
+- **Account Approval Workflow** (Pending / Approved / Rejected)
+- **Ticket Management** (CRUD, search, pagination, analytics)
+- **Ticket Attachments** (PNG, JPG, PDF stored under `uploads/tickets/`)
+- **Excel Import / Export**
+- **Forgot Password** (6-digit OTP, 5-minute expiry)
 - **Automated Email Notifications**
-- **Real-time Pagination**
-- **Responsive Design**
-- **Scheduled Tasks**
-- **Data Encryption**
+- **Stale Ticket Scheduler** (daily 11:00 AM Pakistan time)
+- **Responsive Material UI**
 
 ---
 
@@ -58,6 +64,8 @@ A comprehensive IT Help Desk system with role-based access, ticket management, a
 | **nodemailer** | Email functionality | v7.x |
 | **node-cron** | Scheduled tasks | v3.x |
 | **cors** | Cross-origin resource sharing | v2.x |
+| **multer** | Ticket attachment and Excel uploads | Latest |
+| **exceljs** | Ticket Excel import/export | Latest |
 
 ---
 
@@ -112,7 +120,9 @@ const token = jwt.sign(
 ```javascript
 const AdminRoute = ({ children }) => {
   const { user } = useSelector(state => state.auth);
-  return user?.role === 'admin' ? children : <Navigate to="/unauthorized" />;
+  return (user?.role === 'admin' || user?.role === 'super_admin')
+    ? children
+    : <Navigate to="/unauthorized" />;
 };
 ```
 
@@ -149,6 +159,9 @@ const isValid = await bcrypt.compare(password, hashedPassword);
 
 ## 📊 Database Design
 
+Full create script: [`IT_HELPDESK_DATABASE.sql`](./IT_HELPDESK_DATABASE.sql)  
+Engine: **Microsoft SQL Server**. Connection settings come from `server/.env` (`DB_HOST`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`).
+
 ### Core Tables
 
 #### Users Table
@@ -161,8 +174,11 @@ CREATE TABLE Users (
   employeeID VARCHAR(50) UNIQUE NOT NULL,
   department VARCHAR(100),
   branch VARCHAR(100),
-  role VARCHAR(20) DEFAULT 'user',
-  createdAt DATETIME DEFAULT GETDATE()
+  role VARCHAR(20) NOT NULL DEFAULT 'user',
+  approval_status VARCHAR(20) NOT NULL DEFAULT 'Pending',
+  createdAt DATETIME DEFAULT GETDATE(),
+  resetOTP VARCHAR(10) NULL,
+  resetExpiry DATETIME NULL
 );
 ```
 
@@ -174,31 +190,43 @@ CREATE TABLE Tickets (
   name VARCHAR(255) NOT NULL,
   employeeID VARCHAR(50) NOT NULL,
   status VARCHAR(50) DEFAULT 'open',
-  problemStatement TEXT,
+  problemStatement VARCHAR(MAX),
   problem_dateOccurred DATETIME,
   createdAt DATETIME DEFAULT GETDATE(),
-  updatedAt DATETIME DEFAULT GETDATE()
+  updatedAt DATETIME DEFAULT GETDATE(),
+  attachmentPath VARCHAR(500) NULL
 );
 ```
 
 #### Ticket Sequence Table
+Used only to generate sequential numbers (`TKT-0001`, `TKT-0002`, …) via `INSERT DEFAULT VALUES` + `SCOPE_IDENTITY()`.
 ```sql
 CREATE TABLE TicketSequence (
   id INT PRIMARY KEY IDENTITY(1,1)
 );
 ```
 
+### Allowed values (application)
+
+| Field | Values |
+|-------|--------|
+| `Users.role` | `user`, `admin`, `super_admin` |
+| `Users.approval_status` | `Pending`, `Approved`, `Rejected` |
+| `Tickets.status` | `open`, `in progress`, `closed` |
+
 ### Database Relationships
-- **One-to-Many**: User → Tickets
-- **Indexing**: `updatedAt`, `employeeID`, `ticketNumber`
-- **Constraints**: Foreign keys, unique constraints
+- **Logical One-to-Many**: User (`employeeID`) → Tickets (`employeeID`)
+- **No FK in code**: Excel import can insert tickets even if `employeeID` is not in `Users` (FK is optional in the SQL script)
+- **Unique**: `Users.email`, `Users.employeeID`, `Tickets.ticketNumber`
 
 ### Performance Indexes
 ```sql
+CREATE INDEX IX_Users_email ON Users(email);
+CREATE INDEX IX_Users_employeeID ON Users(employeeID);
 CREATE INDEX IX_Tickets_updatedAt ON Tickets(updatedAt);
 CREATE INDEX IX_Tickets_employeeID ON Tickets(employeeID);
+CREATE INDEX IX_Tickets_ticketNumber ON Tickets(ticketNumber);
 CREATE INDEX IX_Tickets_status ON Tickets(status);
-CREATE INDEX IX_Users_email ON Users(email);
 ```
 
 ---
@@ -368,16 +396,16 @@ const sendEmail = async (to, subject, htmlContent) => {
 const initializeTicketScheduler = () => {
   console.log("🕐 Initializing ticket scheduler...");
   
-  // Schedule the job to run every 30 minutes for testing
-  cron.schedule('*/30 * * * *', async () => {
-    console.log("⏰ Running stale tickets check...");
+  // Daily 11:00 AM Pakistan time (server/utils/ticketScheduler.js)
+  cron.schedule('0 11 * * *', async () => {
+    console.log("⏰ Running stale tickets check (every Day at 11AM)...");
     await sendStaleTicketsNotification();
   }, {
     scheduled: true,
     timezone: "Asia/Karachi"
   });
   
-  console.log("✅ Ticket scheduler initialized - will run every 30 minutes (PKT)");
+  console.log("✅ Ticket scheduler initialized - will run every day at 11 AM (PKT)");
 };
 ```
 
@@ -400,7 +428,7 @@ const getStaleTickets = async () => {
         DATEDIFF(day, t.updatedAt, GETDATE()) as daysSinceLastUpdate
       FROM Tickets t
       WHERE t.status IN ('open', 'in progress')
-      AND DATEDIFF(day, t.updatedAt, GETDATE()) >= 3
+      AND DATEDIFF(day, t.updatedAt, GETDATE()) >= 1
       ORDER BY t.updatedAt ASC
     `);
     
@@ -411,6 +439,8 @@ const getStaleTickets = async () => {
   }
 };
 ```
+
+Current behavior: tickets in `open` or `in progress` whose `updatedAt` is **1+ days** old. Manual trigger: `POST /api/tickets/check-stale-tickets`.
 
 #### Notification Process
 ```javascript
@@ -1015,13 +1045,17 @@ const verifyPassword = async (password, hashedPassword) => {
 | Feature | Description | Implementation |
 |---------|-------------|----------------|
 | **User Authentication** | JWT-based login/logout system | JWT tokens, bcrypt hashing |
-| **Role-based Access** | Admin/User permissions | Route protection, role checks |
+| **Role-based Access** | `user` / `admin` / `super_admin` | Route protection, role checks |
+| **Account Approval** | Super admin approves or rejects signups | `approval_status` on Users |
+| **Password Reset** | 6-digit OTP emailed, 5-minute expiry | `resetOTP`, `resetExpiry` |
 | **Ticket Management** | Full CRUD operations | RESTful API, database operations |
-| **Email Notifications** | Automated alerts | Nodemailer, HTML templates |
+| **Ticket Attachments** | Image/PDF upload on create | Multer + `attachmentPath` |
+| **Excel Import/Export** | Bulk tickets in/out | ExcelJS |
+| **Email Notifications** | New ticket, status update, stale, approval | Nodemailer, HTML templates |
 | **Pagination** | Large dataset handling | Backend pagination, Material UI |
 | **Search & Filtering** | Data discovery | Frontend search, backend ready |
 | **Responsive Design** | Mobile-friendly UI | Material UI, responsive grid |
-| **Automated Scheduling** | Cron jobs | node-cron, stale ticket detection |
+| **Automated Scheduling** | Daily 11:00 AM PKT stale-ticket check | node-cron |
 | **Data Encryption** | Security compliance | AES encryption, secure transmission |
 | **Error Handling** | Graceful failures | Try-catch, error boundaries |
 
@@ -1094,17 +1128,94 @@ const verifyPassword = async (password, hashedPassword) => {
 
 ---
 
+## 👥 Roles, Approval & Password Reset
+
+### Roles
+| Role | Typical access |
+|------|----------------|
+| `user` | Create/view own tickets, profile |
+| `admin` | All tickets, user list/update/delete, Excel import/export, stale-ticket check |
+| `super_admin` | Same as admin plus **approve/reject** users (`PUT /api/users/:id/approval`) |
+
+Middleware: `verifyToken`, `adminAuth` (`role === 'admin'`), `superAdminAuth` (`role === 'super_admin'`), `adminORsuperAdmin`.
+
+### Approval workflow
+1. Signup (`POST /api/auth/register`) inserts `approval_status = 'Pending'`.
+2. Login is blocked while `Pending` or `Rejected`.
+3. Super admin sets `Approved` or `Rejected`; an email is sent on status change.
+
+### Forgot password
+1. `POST /api/users/forgotPassword` with `employeeID` stores a 6-digit OTP and 5-minute `resetExpiry`.
+2. `POST /api/users/verifyOTP` checks OTP and expiry.
+3. `PUT /api/users/resetPassword` hashes the new password and clears OTP fields.
+
+---
+
+## 🔌 API Reference
+
+Most JSON bodies and responses are encrypted (`decryptPayload` + `res.sendEncrypted`). Use `Authorization: Bearer <token>` unless noted. Static files: `GET /uploads/...`.
+
+### Auth (`/api/auth`)
+| Method | Path | Auth | Notes |
+|--------|------|------|--------|
+| POST | `/login` | Public | Body: `employeeID`, `password` |
+| POST | `/register` | Public | Creates user as `Pending` |
+| GET | `/me` | Token | Current user |
+
+### Users (`/api/users`)
+| Method | Path | Auth | Notes |
+|--------|------|------|--------|
+| POST | `/forgotPassword` | Public | Send OTP |
+| POST | `/verifyOTP` | Public | Validate OTP |
+| PUT | `/resetPassword` | Public | Set new password |
+| GET | `/profile/me` | Token | Own profile |
+| PUT | `/profile/me` | Token | Update own profile |
+| GET | `/all` | Admin or Super Admin | All users |
+| GET | `/:id` | Admin or Super Admin | User by id |
+| PUT | `/:id` | Admin | Update user |
+| DELETE | `/:id` | Admin or Super Admin | Delete user (cannot delete self) |
+| PUT | `/:id/approval` | Super Admin | Set `approval_status` |
+
+### Tickets (`/api/tickets`)
+| Method | Path | Auth | Notes |
+|--------|------|------|--------|
+| POST | `/create` | Token | Multipart field `attachment` |
+| GET | `/all` | Token | Paginated list |
+| GET | `/analytics/all-tickets` | — | Chart data |
+| GET | `/view/:ticketNumber` | Token | Single ticket |
+| PUT | `/edit/:ticketNumber` | Token | Status / problem statement; sets `updatedAt` |
+| GET | `/my-tickets` | Token | Current user's tickets |
+| DELETE | `/delete/:ticketNumber` | Token | Delete ticket |
+| POST | `/check-stale-tickets` | Token | Manual stale-ticket email |
+| GET | `/export/all` | — | Excel of all tickets |
+| GET | `/export/my` | Token | Excel of own tickets |
+| POST | `/import` | — | Multipart Excel `file` |
+
+---
+
+## 📎 Ticket Attachments & Excel Import/Export
+
+### Attachments
+- Stored under `server/uploads/tickets/` with a unique filename.
+- Allowed types (magic-byte check): PNG, JPEG, PDF.
+- Column `Tickets.attachmentPath` holds the relative path used by ticket detail pages.
+
+### Excel
+- **Export** columns: Ticket Number, Employee ID, Name, Status, Problem Date, Problem Statement, Created At, Updated At.
+- **Import** reads those data columns (without ticket number); a new `TicketSequence` id is generated per row.
+
+---
+
 ## 🔮 Future Enhancements
 
 ### Planned Features
 1. **Real-time Notifications** - WebSocket integration
 2. **Advanced Search** - Backend search with filters
-3. **File Attachments** - Ticket file uploads
-4. **Reporting Dashboard** - Analytics and reports
-5. **Mobile App** - React Native application
-6. **API Documentation** - Swagger/OpenAPI
-7. **Unit Testing** - Jest, React Testing Library
-8. **CI/CD Pipeline** - Automated deployment
+3. **Reporting Dashboard** - Deeper analytics and reports
+4. **Mobile App** - React Native application
+5. **API Documentation** - Swagger/OpenAPI
+6. **Unit Testing** - Jest, React Testing Library
+7. **CI/CD Pipeline** - Automated deployment
 
 ### Scalability Improvements
 1. **Microservices Architecture** - Service decomposition
@@ -1120,10 +1231,10 @@ const verifyPassword = async (password, hashedPassword) => {
 ### Code Metrics
 - **Frontend Lines**: ~2,500 lines
 - **Backend Lines**: ~1,800 lines
-- **Database Tables**: 3 tables
-- **API Endpoints**: 12 endpoints
-- **React Components**: 15 components
-- **Redux Slices**: 2 slices
+- **Database Tables**: 3 tables (`Users`, `Tickets`, `TicketSequence`)
+- **API Endpoints**: Auth, users (including OTP and approval), tickets (CRUD, stale check, Excel, attachments)
+- **React Components**: 15+ components
+- **Redux Slices**: Auth and user slices
 
 ### Performance Metrics
 - **Page Load Time**: < 2 seconds
